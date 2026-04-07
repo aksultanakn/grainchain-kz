@@ -1,16 +1,4 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
-import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import {
-  PROGRAM_ID, fetchWalletBalances, explorerTx,
-  GRAIN_MINT, SGRAIN_MINT, CGRAIN_MINT, USDC_MINT,
-} from "./chain";
-import {
-  txDepositUsdc, txBorrow, txRepay,
-  txDepositSgrain, txWithdrawSgrain,
-  txEnterCarry, txExitCarry,
-} from "./transactions";
 
 // ─── LANGUAGE TYPES & CONTEXT ─────────────────────────────────────────────────
 type Lang = "en" | "ru" | "kz";
@@ -1903,46 +1891,9 @@ export default function App() {
   const [lang, setLang] = useState<Lang>("en");
   const t = T[lang];
 
-  // ── Wallet ─────────────────────────────────────────────────────────────────
-  const { connection } = useConnection();
-  const walletAdapter  = useWallet();
-  const isConnected    = walletAdapter.connected && !!walletAdapter.publicKey;
-
-  // ── State: demo values until wallet connects, then syncs real balances ─────
   const [wallet, setWallet] = useState({
     usdc: 45000, grain: 3_200_000_000, sgrain: 1_850_000_000, cgrain: 0, chain: 420
   });
-  const [program, setProgram] = useState<any>(null);
-  const [syncing, setSyncing] = useState(false);
-
-  // Build Anchor program when wallet connects (IDL loaded from /idl.json)
-  useEffect(() => {
-    if (!isConnected || !walletAdapter.publicKey) { setProgram(null); return; }
-    const provider = new AnchorProvider(connection, walletAdapter as any, { commitment: "confirmed" });
-    fetch("/idl.json")
-      .then(r => r.json())
-      .then(idl => setProgram(new Program(idl, PROGRAM_ID as any, provider)))
-      .catch(() => console.warn("IDL not found — some on-chain reads won't work"));
-  }, [isConnected, walletAdapter.publicKey?.toBase58()]);
-
-  // Sync real balances from chain
-  const syncBalances = useCallback(async () => {
-    if (!isConnected || !walletAdapter.publicKey) return;
-    setSyncing(true);
-    try {
-      const b = await fetchWalletBalances(connection, walletAdapter.publicKey);
-      setWallet({ usdc: b.usdc, grain: b.grain, sgrain: b.sgrain, cgrain: b.cgrain, chain: b.chain });
-    } catch (e) { console.error("syncBalances:", e); }
-    finally { setSyncing(false); }
-  }, [isConnected, walletAdapter.publicKey?.toBase58()]);
-
-  useEffect(() => {
-    if (!isConnected) return;
-    syncBalances();
-    const iv = setInterval(syncBalances, 15_000);
-    return () => clearInterval(iv);
-  }, [isConnected, syncBalances]);
-
   const [wPrice, setWPrice] = useState(182.4);
   const [wDelta, setWDelta] = useState(0.12);
   const [toastMsg, setToastMsg] = useState<any>(null);
@@ -1978,7 +1929,7 @@ export default function App() {
     { id:"judge",  label:t.judgeGuide, icon:"🎓" },
   ];
 
-  const props = { wallet, setWallet, wPrice, toast, log, program, walletAdapter, connection, syncBalances, isConnected };
+  const props = { wallet, setWallet, wPrice, toast, log };
 
   return (
     <LangContext.Provider value={{ lang, setLang }}>
@@ -1999,7 +1950,6 @@ export default function App() {
           <div className="price-chip">
             <span className="price-label">{t.network}</span>
             <span className="price-value" style={{color:"#5ecba1"}}>Devnet</span>
-            {syncing && <span style={{fontSize:9,color:"rgba(255,255,255,.4)",marginLeft:4}}>↻</span>}
           </div>
         </div>
         <div className="topbar-right">
@@ -2010,44 +1960,10 @@ export default function App() {
               </button>
             ))}
           </div>
-          {isConnected ? (
-            <>
-              <div className="wallet-pill"><div className="w-dot"/>
-                {fmt(wallet.usdc/1_000_000,0)} USDC
-              </div>
-              <div className="wallet-pill"><div className="w-dot"/>
-                {(wallet.grain/1_000_000).toFixed(0)} GRAIN
-              </div>
-              <div className="wallet-pill" style={{cursor:"pointer",color:"#5ecba1"}}
-                onClick={() => walletAdapter.disconnect()}>
-                <div className="w-dot" style={{background:"#5ecba1"}}/>
-                {walletAdapter.publicKey!.toBase58().slice(0,4)}…{walletAdapter.publicKey!.toBase58().slice(-4)}
-              </div>
-            </>
-          ) : (
-            <WalletMultiButton style={{
-              height:32, fontSize:12, padding:"0 14px", borderRadius:20,
-              background:"var(--gold)", fontFamily:"var(--sans)", fontWeight:600,
-            }}/>
-          )}
+          <div className="wallet-pill"><div className="w-dot"/>{fmt(wallet.usdc,0)} USDC</div>
+          <div className="wallet-pill"><div className="w-dot"/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
         </div>
       </div>
-
-      {/* Banner when not connected */}
-      {!isConnected && (
-        <div style={{
-          background:"var(--amber-l)", borderBottom:"1px solid rgba(192,122,24,.2)",
-          padding:"9px 24px", display:"flex", alignItems:"center", gap:10,
-          fontSize:12, color:"var(--amber)"
-        }}>
-          <span>⚡</span>
-          <span>
-            {lang==="en" ? "Connect Phantom to use real on-chain transactions — running in demo mode." :
-             lang==="ru" ? "Подключите Phantom для реальных транзакций — сейчас демо-режим." :
-             "Нақты транзакциялар үшін Phantom қосыңыз — қазір демо режим."}
-          </span>
-        </div>
-      )}
 
       <div className="nav">
         {TABS.map(tb => (
@@ -2074,10 +1990,6 @@ export default function App() {
               <div key={i} style={{display:"flex",alignItems:"center",gap:8,flex:1,overflow:"hidden"}}>
                 <div className="act-dot" style={{background:a.c}}/>
                 <span className="act-text">{a.t}</span>
-                {a.sig && (
-                  <a href={explorerTx(a.sig)} target="_blank" rel="noopener"
-                    style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--teal)",flexShrink:0}}>↗ Explorer</a>
-                )}
                 <span className="act-time">{a.ts}</span>
               </div>
             ))}
