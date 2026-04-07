@@ -1,4 +1,17 @@
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { PublicKey } from "@solana/web3.js";
+import {
+  PROGRAM_ID, fetchWalletBalances, fetchSgrainRate,
+  fetchCarryVaultState, fetchLoanPosition, explorerTx,
+} from "./chain";
+import {
+  txDepositUsdc, txBorrow, txRepay,
+  txDepositSgrain, txWithdrawSgrain,
+  txEnterCarry, txExitCarry, txClaimRewards,
+} from "./transactions";
 
 // ─── LANGUAGE TYPES & CONTEXT ─────────────────────────────────────────────────
 type Lang = "en" | "ru" | "kz";
@@ -857,9 +870,19 @@ tr:hover td { background: rgba(26,138,106,.03); }
 .carry-spread-val.backwardation-color { color: #f08060; }
 `;
 
-// ─── MOCK DATA & CONSTANTS ─────────────────────────────────────────────────
-const TESTNET_PROGRAM  = "GRNchain1111111111111111111111111111111111111";
-const TESTNET_EXPLORER = "https://explorer.solana.com";
+// ─── DEVNET ADDRESSES ─────────────────────────────────────────────────────────
+const PROGRAM_ID   = "4NutBXSNJ9tJLFueRwRd6PjQPzgricziys9uTBLuP8n7";
+const EXPLORER     = "https://explorer.solana.com";
+const CLUSTER      = "devnet";
+const CLUSTER_URL  = "https://api.devnet.solana.com";
+
+const ADDRESSES = {
+  program:  { label: "Program ID",          val: "4NutBXSNJ9tJLFueRwRd6PjQPzgricziys9uTBLuP8n7" },
+  grain:    { label: "GRAIN Mint",           val: "CLxFPnJp2xXVDLpKciAHwW13DQo8qQGKHYUdYXawkfy2" },
+  sgrain:   { label: "sGRAIN Mint",          val: "GNQkAbRkrnL2383dkGMcYcYpnXfsRCBMgtWycYfgVMAW" },
+  cgrain:   { label: "cGRAIN Mint",          val: "2cmjhBb2h922yYKxT8A5VfJbMn4kALcjxXVuyXyGoq2E" },
+  usdc:     { label: "USDC Mint (mock)",     val: "7gEJnKHRwHBhMMRUeRvJm7eV4LgAXyU2wduiEs6Prek8" },
+};
 
 const SILOS = [
   { id:"KST-SILO-001", name:"Kostanay Elevator #1", region:"Kostanay",  cap:5000, avail:3200, grades:["1","2"] },
@@ -1384,25 +1407,42 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
   const [cgrainRate, setCgrainRate] = useState(1_000_000_000);
   const [rateFlash, setRateFlash] = useState(false);
 
-  // Simulate live carry spread + cGRAIN rate ticking
+  // ── Live carry spread simulation (realistic: slow drift, not random jump) ──
+  // Real CME spread changes by ~0.01-0.05% per day, we simulate that
   useEffect(() => {
     const ti = setInterval(() => {
       setCarrySpread(s => {
-        const delta = (Math.random() - 0.45) * 12;
-        return Math.max(800, Math.min(2200, Math.round(s + delta)));
+        // Gentle drift: ±2 bps per 10 seconds, mean-reverting toward 1480
+        const pull = (1480 - s) * 0.01; // mean reversion
+        const noise = (Math.random() - 0.5) * 4;
+        return Math.max(600, Math.min(2400, Math.round(s + pull + noise)));
       });
-      // cGRAIN rate ticks faster than sGRAIN (carry APY ~14.8%)
+      setRateFlash(true);
+      setTimeout(() => setRateFlash(false), 300);
+    }, 10_000); // every 10 seconds, not 3.2
+    return () => clearInterval(ti);
+  }, []);
+
+  // ── cGRAIN exchange rate — ticks once per minute realistically ─────────────
+  // At 14.8% APY: per minute increment = 1e9 * 0.148 / 525600 ≈ 281 units
+  // That's visible but not crazy
+  useEffect(() => {
+    const ti = setInterval(() => {
       setCgrainRate(r => {
-        const apy = 0.148;
-        const perSec = apy / 31_536_000 * 1e9;
-        return Math.round(r + r * perSec * 3.2); // 3.2s interval
+        const APY = 0.148;
+        const perMinute = APY / 525_600; // 525600 minutes per year
+        const increment = Math.round(r * perMinute);
+        return r + increment;
       });
       if (wallet.cgrain > 0) {
-        setCgrainEarned(e => e + wallet.cgrain / 1_000_000 * 0.148 / 31_536_000 * 3.2);
+        setCgrainEarned(e => {
+          const APY = 0.148;
+          const perMinute = APY / 525_600;
+          return e + (wallet.cgrain / 1_000_000) * perMinute;
+        });
       }
-      setRateFlash(true); setTimeout(()=>setRateFlash(false), 350);
-    }, 3200);
-    return () => clearInterval(t);
+    }, 60_000); // tick once per minute
+    return () => clearInterval(ti);
   }, [wallet.cgrain]);
 
   const annualizedApy = (carrySpread / 10000 * 365 / 180 * 100).toFixed(1);
@@ -1586,16 +1626,11 @@ function JudgeTab({ toast }: any) {
 
   function copy(v: string, label: string) {
     navigator.clipboard?.writeText(v).catch(()=>{});
-    setCopied(label); toast(`✓ ${t.copy} ${label}`);
-    setTimeout(()=>setCopied(""), 1500);
+    setCopied(label); toast(`✓ Copied!`);
+    setTimeout(()=>setCopied(""), 1800);
   }
 
-  const addresses = [
-    { label:"Program ID", val:TESTNET_PROGRAM, link:`${TESTNET_EXPLORER}/address/${TESTNET_PROGRAM}?cluster=testnet` },
-    { label:"Protocol Config PDA", val:"PCfg...run init-protocol.ts", link:"" },
-    { label:"GRAIN Mint", val:"GRAIN-run deploy.sh for address", link:"" },
-    { label:"sGRAIN Vault", val:"SGV...run init-protocol.ts", link:"" },
-  ];
+  const addrList = Object.values(ADDRESSES);
 
   return (
     <div className="page">
@@ -1603,30 +1638,52 @@ function JudgeTab({ toast }: any) {
         <div className="judge-hero-title">{t.judgeTitle.split("\n").map((line,i)=><span key={i}>{line}{i===0&&<br/>}</span>)}</div>
         <div className="judge-hero-sub">{t.judgeSub}</div>
         <div>
-          {[["Legal ✓","jt-teal"],["KZ Law on Grain 2022","jt-gold"],["Qoldau.kz Registry","jt-gold"],["Pyth Oracle","jt-sky"],["Anchor 0.30.1","jt-sky"],["192 Licensed Silos","jt-teal"],["Apr 7 Deadline","jt-gold"]].map(([l,c])=>(
+          {[["Legal ✓","jt-teal"],["KZ Law on Grain 2022","jt-gold"],["Qoldau.kz Registry","jt-gold"],["Anchor 0.30.1","jt-sky"],["Devnet Live","jt-teal"],["192 Licensed Silos","jt-teal"],["Decentrathon 2026","jt-gold"]].map(([l,c])=>(
             <span key={l} className={`judge-tag ${c}`}>{l}</span>
           ))}
         </div>
       </div>
 
-      <div className="g2 mb-20">
-        <div className="card">
-          <div className="card-title">{t.onChainAddresses}</div>
-          <p className="text-sm mb-12">{t.deployFirst} <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>bash scripts/deploy.sh</code> {t.thenRun} <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>yarn init</code> {t.toPopulate}</p>
-          {addresses.map(a => (
-            <div key={a.label} style={{padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
-              <div className="text-sm mb-4">{a.label}</div>
-              <div className="flex-gap">
-                <code style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--ink-m)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.val}</code>
-                {a.link && <a href={a.link} target="_blank" rel="noopener" className="explorer-link">{t.explorer}</a>}
-                <button className="btn btn-outline btn-sm" onClick={()=>copy(a.val, a.label)} style={{padding:"3px 8px",fontSize:10}}>
-                  {copied===a.label?"✓":t.copy}
-                </button>
-              </div>
+      {/* ── Live on-chain addresses ── */}
+      <div className="card mb-20">
+        <div className="flex-between mb-16">
+          <div className="card-title" style={{margin:0}}>{t.onChainAddresses}</div>
+          <span className="badge badge-live">● DEVNET LIVE</span>
+        </div>
+        <div style={{display:"grid",gap:10}}>
+          {addrList.map(a => (
+            <div key={a.label} style={{
+              display:"grid", gridTemplateColumns:"140px 1fr auto auto",
+              alignItems:"center", gap:10,
+              padding:"10px 14px", background:"var(--sand)",
+              borderRadius:"var(--r)", border:"1px solid var(--border)"
+            }}>
+              <span style={{fontSize:11,fontWeight:600,color:"var(--ink-l)",textTransform:"uppercase",letterSpacing:".05em"}}>{a.label}</span>
+              <code style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--ink-m)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.val}</code>
+              <a
+                href={`${EXPLORER}/address/${a.val}?cluster=${CLUSTER}`}
+                target="_blank" rel="noopener"
+                style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--sky)",textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}
+              >↗ Explorer</a>
+              <button
+                onClick={() => copy(a.val, a.label)}
+                style={{
+                  padding:"4px 10px", borderRadius:4, fontSize:11, fontWeight:600,
+                  border:"1.5px solid var(--border-m)", background: copied===a.label?"var(--teal)":"transparent",
+                  color: copied===a.label?"white":"var(--ink-l)", cursor:"pointer",
+                  transition:"all .15s", whiteSpace:"nowrap", flexShrink:0
+                }}
+              >{copied===a.label?"✓ Copied":"Copy"}</button>
             </div>
           ))}
         </div>
+        <div className="info-box mt-16">
+          All transactions are verifiable on <a href={`${EXPLORER}/?cluster=${CLUSTER}`} target="_blank" rel="noopener" style={{color:"var(--teal-d)"}}>Solana Devnet Explorer</a>.
+          Program deployed at block height — check the program account to see all on-chain state.
+        </div>
+      </div>
 
+      <div className="g2 mb-20">
         <div className="card">
           <div className="card-title">{t.judgeWallets}</div>
           <p className="text-sm mb-12">{t.runWallets} <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>yarn wallets</code> {t.toCreate}</p>
@@ -1641,6 +1698,24 @@ function JudgeTab({ toast }: any) {
             </div>
           ))}
           <div className="info-box mt-12">{t.importPhantom} <code style={{fontFamily:"var(--mono)",fontSize:10}}>judge-wallets-private.json</code>.</div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Quick CLI checks</div>
+          {[
+            ["Check program is deployed", `solana program show ${ADDRESSES.program.val} --url devnet`],
+            ["Check GRAIN mint supply", `spl-token supply ${ADDRESSES.grain.val} --url devnet`],
+            ["Check sGRAIN mint", `spl-token supply ${ADDRESSES.sgrain.val} --url devnet`],
+            ["Check cGRAIN mint", `spl-token supply ${ADDRESSES.cgrain.val} --url devnet`],
+            ["Run full demo", "npx ts-node scripts/demo-interactions.ts"],
+            ["Carry oracle", "npx ts-node scripts/carry-oracle.ts --once"],
+          ].map(([l,cmd])=>(
+            <div key={l} style={{marginBottom:10}}>
+              <div className="text-sm mb-4">{l}</div>
+              <code style={{fontFamily:"var(--mono)",fontSize:11,background:"var(--sand)",padding:"4px 8px",borderRadius:4,display:"block",color:"var(--ink-m)",cursor:"pointer",overflow:"auto"}}
+                onClick={()=>copy(cmd,"command")}>{cmd}</code>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1660,35 +1735,15 @@ function JudgeTab({ toast }: any) {
         })}
       </div>
 
-      <div className="g2">
-        <div className="card">
-          <div className="card-title">{t.quickCli}</div>
-          {[
-            [t.checkSgrain, "solana account <sgrain_vault> --url testnet"],
-            [t.checkCgrain, "solana account <carry_vault> --url testnet"],
-            [t.verifyGrain, "spl-token balance <grain_mint> --owner <silo_pda>"],
-            [t.runDemo, "npx ts-node scripts/demo-interactions.ts"],
-            [t.liveYield, "yarn crank --interval 10"],
-            [t.carryOracle, "npx ts-node scripts/carry-oracle.ts --once"],
-          ].map(([l,cmd])=>(
-            <div key={l} style={{marginBottom:10}}>
-              <div className="text-sm mb-4">{l}</div>
-              <code style={{fontFamily:"var(--mono)",fontSize:11,background:"var(--sand)",padding:"4px 8px",borderRadius:4,display:"block",color:"var(--ink-m)",cursor:"pointer"}}
-                onClick={()=>copy(cmd,"command")}>{cmd}</code>
-            </div>
-          ))}
-        </div>
-
-        <div className="card">
-          <div className="card-title">{t.legalBasis}</div>
-          {t.legal.map(([k,v])=>(
-            <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid var(--border)",fontSize:12}}>
-              <span style={{fontWeight:600,color:"var(--ink)"}}>{k}</span>
-              <span style={{color:"var(--ink-l)",textAlign:"right",maxWidth:"55%"}}>{v}</span>
-            </div>
-          ))}
-          <div className="info-box mt-12">{t.legalNote} <strong>{t.solanaNative}</strong> {t.govtPiloting}</div>
-        </div>
+      <div className="card">
+        <div className="card-title">{t.legalBasis}</div>
+        {t.legal.map(([k,v])=>(
+          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid var(--border)",fontSize:12}}>
+            <span style={{fontWeight:600,color:"var(--ink)"}}>{k}</span>
+            <span style={{color:"var(--ink-l)",textAlign:"right",maxWidth:"55%"}}>{v}</span>
+          </div>
+        ))}
+        <div className="info-box mt-12">{t.legalNote} <strong>{t.solanaNative}</strong> {t.govtPiloting}</div>
       </div>
     </div>
   );
@@ -1699,7 +1754,67 @@ export default function App() {
   const [tab, setTab] = useState("farmer");
   const [lang, setLang] = useState<Lang>("en");
   const t = T[lang];
-  const [wallet, setWallet] = useState({ usdc:45000, grain:3_200_000_000, sgrain:1_850_000_000, cgrain:0, chain:420 });
+
+  // ── Solana wallet connection ──────────────────────────────────────────────
+  const { connection } = useConnection();
+  const walletAdapter  = useWallet();
+  const isConnected    = walletAdapter.connected && !!walletAdapter.publicKey;
+
+  // ── Wallet state — starts with demo values, syncs on-chain when connected ─
+  const [wallet, setWallet] = useState({
+    usdc: 45000, grain: 3_200_000_000, sgrain: 1_850_000_000, cgrain: 0, chain: 420
+  });
+  const [program, setProgram] = useState<Program | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  // Build Anchor program when wallet connects
+  useEffect(() => {
+    if (!isConnected || !walletAdapter.publicKey) { setProgram(null); return; }
+    try {
+      const provider = new AnchorProvider(connection, walletAdapter as any, { commitment: "confirmed" });
+      // IDL is loaded dynamically — in production place your IDL JSON at public/idl.json
+      fetch("/idl.json")
+        .then(r => r.json())
+        .then(idl => {
+          const prog = new Program(idl, PROGRAM_ID, provider);
+          setProgram(prog);
+        })
+        .catch(() => {
+          console.warn("IDL not found — running in demo mode. Deploy contracts and add public/idl.json");
+        });
+    } catch (e) {
+      console.error("Failed to init program:", e);
+    }
+  }, [isConnected, walletAdapter.publicKey, connection]);
+
+  // Sync real on-chain balances whenever wallet or program changes
+  const syncBalances = useCallback(async () => {
+    if (!isConnected || !walletAdapter.publicKey) return;
+    setSyncing(true);
+    try {
+      const balances = await fetchWalletBalances(connection, walletAdapter.publicKey);
+      setWallet({
+        usdc:   balances.usdc,
+        grain:  balances.grain,
+        sgrain: balances.sgrain,
+        cgrain: balances.cgrain,
+        chain:  balances.chain,
+      });
+    } catch (e) {
+      console.error("syncBalances error:", e);
+    } finally {
+      setSyncing(false);
+    }
+  }, [isConnected, walletAdapter.publicKey, connection]);
+
+  // Sync on connect and every 15s
+  useEffect(() => {
+    if (!isConnected) return;
+    syncBalances();
+    const interval = setInterval(syncBalances, 15_000);
+    return () => clearInterval(interval);
+  }, [isConnected, syncBalances]);
+
   const [wPrice, setWPrice] = useState(182.4);
   const [wDelta, setWDelta] = useState(0.12);
   const [toastMsg, setToastMsg] = useState<any>(null);
@@ -1735,7 +1850,7 @@ export default function App() {
     { id:"judge",  label:t.judgeGuide, icon:"🎓" },
   ];
 
-  const props = { wallet, setWallet, wPrice, toast, log };
+  const props = { wallet, setWallet, wPrice, toast, log, program, syncBalances };
 
   return (
     <LangContext.Provider value={{ lang, setLang }}>
@@ -1755,7 +1870,8 @@ export default function App() {
           </div>
           <div className="price-chip">
             <span className="price-label">{t.network}</span>
-            <span className="price-value">Testnet</span>
+            <span className="price-value">Devnet</span>
+            {syncing && <span style={{fontSize:9,color:"rgba(255,255,255,.4)",marginLeft:4}}>↻</span>}
           </div>
         </div>
         <div className="topbar-right">
@@ -1766,8 +1882,22 @@ export default function App() {
               </button>
             ))}
           </div>
-          <div className="wallet-pill"><div className="w-dot"/>{fmt(wallet.usdc,0)} USDC</div>
-          <div className="wallet-pill"><div className="w-dot"/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
+          {/* Phantom connect button — replaces wallet pills when not connected */}
+          {isConnected ? (
+            <>
+              <div className="wallet-pill"><div className="w-dot"/>{fmt(wallet.usdc/1_000_000,0)} USDC</div>
+              <div className="wallet-pill"><div className="w-dot"/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
+              <div className="wallet-pill" style={{cursor:"pointer"}} onClick={() => walletAdapter.disconnect()}>
+                <div className="w-dot"/>
+                {walletAdapter.publicKey!.toBase58().slice(0,4)}...{walletAdapter.publicKey!.toBase58().slice(-4)}
+              </div>
+            </>
+          ) : (
+            <WalletMultiButton style={{
+              height:32, fontSize:12, padding:"0 14px", borderRadius:20,
+              background:"var(--gold)", fontFamily:"var(--sans)",
+            }}/>
+          )}
         </div>
       </div>
 
@@ -1779,6 +1909,13 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {!isConnected && (
+        <div style={{background:"var(--amber-l)",borderBottom:"1px solid rgba(192,122,24,.2)",padding:"10px 24px",display:"flex",alignItems:"center",gap:10,fontSize:13,color:"var(--amber)"}}>
+          <span>⚡</span>
+          <span>{lang==="en"?"Connect Phantom wallet to use real on-chain transactions. Running in demo mode.":lang==="ru"?"Подключите кошелёк Phantom для реальных транзакций. Работает в режиме демо.":"Нақты транзакциялар үшін Phantom әмиянын қосыңыз. Демо режимінде жұмыс істейді."}</span>
+        </div>
+      )}
 
       <div style={{flex:1, paddingBottom: activities.length ? 44 : 0}}>
         {tab==="farmer" && <FarmerTab {...props}/>}
@@ -1796,6 +1933,7 @@ export default function App() {
               <div key={i} style={{display:"flex",alignItems:"center",gap:8,flex:1,overflow:"hidden"}}>
                 <div className="act-dot" style={{background:a.c}}/>
                 <span className="act-text">{a.t}</span>
+                {a.sig && <a href={explorerTx(a.sig)} target="_blank" rel="noopener" style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--teal)",flexShrink:0}}>↗ Explorer</a>}
                 <span className="act-time">{a.ts}</span>
               </div>
             ))}
