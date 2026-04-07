@@ -1,0 +1,39 @@
+{
+  "name": "grainchain-kz",
+  "version": "1.0.0",
+  "description": "Tokenizing Kazakh grain warehouse receipts on Solana — Decentrathon 2026",
+  "scripts": {
+    "build":           "anchor build",
+    "test":            "anchor test",
+    "test:testnet":     "anchor test --provider.cluster testnet",
+
+    "deploy":          "bash scripts/deploy.sh",
+    "init":            "ANCHOR_PROVIDER_URL=https://api.testnet.solana.com ANCHOR_WALLET=$HOME/.config/solana/id.json npx ts-node scripts/init-protocol.ts",
+    "seed":            "ANCHOR_PROVIDER_URL=https://api.testnet.solana.com ANCHOR_WALLET=$HOME/.config/solana/id.json npx ts-node scripts/seed-demo-data.ts",
+    "wallets":         "ANCHOR_PROVIDER_URL=https://api.testnet.solana.com ANCHOR_WALLET=$HOME/.config/solana/id.json npx ts-node scripts/create-judge-wallets.ts",
+    "demo":            "ANCHOR_PROVIDER_URL=https://api.testnet.solana.com ANCHOR_WALLET=$HOME/.config/solana/id.json npx ts-node scripts/demo-interactions.ts",
+    "crank":           "ANCHOR_PROVIDER_URL=https://api.testnet.solana.com ANCHOR_WALLET=$HOME/.config/solana/id.json npx ts-node scripts/crank-yield.ts",
+    "carry-oracle":    "ANCHOR_PROVIDER_URL=https://api.testnet.solana.com ANCHOR_WALLET=$HOME/.config/solana/id.json npx ts-node scripts/carry-oracle.ts",
+
+    "setup:all":       "yarn deploy && yarn init && yarn seed && yarn wallets",
+    "demo:full":       "yarn demo && yarn crank --interval 10 & yarn carry-oracle --interval 15",
+
+    "start":           "cd app && yarn dev",
+    "start:app":       "cd app && VITE_CLUSTER=testnet yarn dev"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js":   "^1.91.8",
+    "@solana/spl-token": "^0.4.6"
+  },
+  "devDependencies": {
+    "@types/bn.js":   "^5.1.5",
+    "@types/chai":    "^4.3.14",
+    "@types/mocha":   "^10.0.6",
+    "@types/node":    "^20.12.7",
+    "chai":           "^4.4.1",
+    "mocha":          "^10.4.0",
+    "ts-mocha":       "^10.0.0",
+    "typescript":     "^5.4.5"
+  }
+}

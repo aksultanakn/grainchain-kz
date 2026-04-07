@@ -1,0 +1,29 @@
+# Solana / Anchor
+target/
+.anchor/
+test-ledger/
+*.so
+
+# Judge wallets private keys — NEVER commit these
+judge-wallets-private.json
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build
+frontend/dist/
+.vercel/
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated
+testnet-addresses.json
+devnet-addresses.json
+*.bak
