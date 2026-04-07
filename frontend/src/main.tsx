@@ -1,3 +1,7 @@
+import { Buffer } from "buffer";
+(window as any).Buffer = Buffer;
+(window as any).global = window;
+
 import React, { useMemo } from "react";
 import ReactDOM from "react-dom/client";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
