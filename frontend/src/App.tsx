@@ -1,4 +1,374 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
+
+// ─── LANGUAGE TYPES & CONTEXT ─────────────────────────────────────────────────
+type Lang = "en" | "ru" | "kz";
+const LangContext = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({ lang: "en", setLang: () => {} });
+const useLang = () => useContext(LangContext);
+
+// ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
+const T = {
+  en: {
+    // Nav
+    farmerDash: "Farmer Dashboard", p2pMarket: "P2P Grain Market",
+    lenderVault: "Lender Vault", carryVault: "Carry Vault", judgeGuide: "Judge Guide",
+    // Topbar
+    network: "Network",
+    // Farmer tab
+    grainTokens: "GRAIN tokens", sgrainVault: "sGRAIN (vault)", usdcBalance: "USDC balance",
+    chainRewards: "CHAIN rewards", autoCompounding: "Auto-compounding 3.2%",
+    availLiquidity: "Available liquidity", govTokens: "Governance tokens",
+    selectSilo: "Select Licensed Silo", tokenizeGrain: "Tokenize Grain",
+    selectSiloLabel: "Select silo", mintGrain: "Mint GRAIN Tokens", toSgrain: "→ sGRAIN Vault",
+    borrowAgainst: "Borrow Against Grain", maxBorrow: "Max borrow", against: "against",
+    borrowUsdc: "Borrow USDC", qoldauReceipt: "QOLDAU DIGITAL RECEIPT · BLOCKCHAIN VERIFIED",
+    tokenizedWheat: "Tokenized spring wheat — certified", oraclePrice: "Oracle price",
+    totalValue: "Total value", maxBorrow60: "Max borrow (60%)", status: "Status",
+    inSiloVerified: "● In-silo, verified", seasonalCarry: "Seasonal carry opportunity",
+    historicalSpread: "Historical Sep→Mar spread", positiveYears: "Positive in 80% of years",
+    tokenizeAtHarvest: "Tokenize at harvest, hold to spring.",
+    seasonalAppreciation: "Seasonal appreciation (6 mo)", lendingYield: "Lending yield (6 mo)",
+    storageFeeShare: "Storage fee share (6 mo)", carryVaultLabel: "Carry vault (cGRAIN)",
+    totalPotential: "Total potential return",
+    mintModal: "Mint GRAIN Tokens", grainQty: "Grain quantity", gostGrade: "GOST Grade",
+    detailsStep: "1. Details", verifyStep: "2. Verify", mintStep: "3. Mint",
+    minting: "Minting…", mintTokens: "Mint Tokens", cancel: "Cancel",
+    borrowModal60: "60% LTV",
+    borrowAmt: "Borrow amount", borrowBtn: "Borrow USDC",
+    // Market tab
+    allGrades: "All grades", grade1: "Grade 1", grade2: "Grade 2", grade3: "Grade 3",
+    livePrices: "LIVE PRICES", springWheat: "Spring Wheat",
+    protein: "Protein", moisture: "Moisture", available: "Available", seller: "Seller",
+    lotFill: "Lot fill", sold: "% sold", buyNow: "Buy Now",
+    purchaseLot: "Purchase Grain Lot", quantity: "Quantity",
+    price: "Price", receipt: "Receipt", cost: "Cost", grainReceived: "GRAIN received",
+    settlement: "Settlement", lessThan1s: "<1 second",
+    // Lender tab
+    totalDeposited: "Total deposited", earning: "EARNING",
+    usdcAcross: "USDC across 2 active vaults", totalEarned: "Total earned",
+    blendedApy: "Blended APY", nextPayout: "Next payout",
+    grainSeniorVault: "GRAIN Senior Vault", sgrainYieldVault: "sGRAIN Yield Vault",
+    seniorTranche: "Senior tranche · first-loss protected",
+    earnedSoFar: "earned so far · $25,000 deposited",
+    vaultUtil: "Vault utilization", depositedLabel: "deposited",
+    yourPositions: "Your positions", depositUsdc: "+ Deposit USDC",
+    health: "Health", dep: "dep.", howYieldWorks: "How lender yield works",
+    ly1: "Deposit USDC into the vault",
+    ly2: "Farmers borrow USDC against silo'd GRAIN tokens (60% LTV)",
+    ly3: "Farmers pay 11.2% APR on their loan",
+    ly4: "Interest flows to you in real-time as earned yield",
+    ly5: "Default protection: GRAIN tokens auto-liquidated via Pyth oracle",
+    securedByWheat: "Your USDC is secured by",
+    physicallySegregated: "physically segregated wheat",
+    inLicensedSilos: "in licensed Kazakh silos. Grain cannot leave without burning the GRAIN tokens.",
+    depositModal: "Deposit USDC", earnSecured: "Earn 11.2% APY · secured by silo'd wheat",
+    depositAmt: "Deposit amount", depositEarn: "Deposit & Earn",
+    annualYield: "Annual yield", monthly: "Monthly",
+    // Carry tab
+    carrySpreadLabel: "6-month carry", cmePyth: "CME ZW Sep→Mar contango spread · Pyth oracle",
+    zwSepSpot: "ZW1! Sep spot", zwMarchFutures: "ZW March futures",
+    annualizedCarryApy: "Annualized carry APY", cgrainRate: "cGRAIN Rate",
+    yourCgrain: "Your cGRAIN",
+    howCarryWorks: "How carry yield works",
+    carryExplain: "KZ wheat is harvested Aug–Sep at the seasonal price low. CME March futures trade at a premium (contango). By holding tokenized grain through winter, you capture the spread as yield — on top of storage fees and lending interest.",
+    physicalGrain: "Physical GRAIN held in silo", alreadyHappening: "Already happening — no extra cost",
+    cgrainAccrues: "cGRAIN exchange rate accrues spread", updatesEveryBlock: "Updates every block via oracle",
+    exitInMarch: "Exit in March", moreGrainReturned: "More GRAIN + USDC carry yield returned",
+    avgCarry: "Avg carry (2005–2024)", avgCarryVal: "18.4% Sep→Mar, positive 80% of years",
+    historicalSpreadTitle: "Historical Sep→Mar spread",
+    enterCarryPos: "Enter Carry Position", grainToLock: "GRAIN to lock",
+    available2: "Available", enterCarryBtn: "Enter Carry Position",
+    yourActiveCarry: "Your Active Carry Position",
+    carryPosLabel: "CARRY POSITION · CGRAIN VAULT",
+    wheatCarry: "Wheat carry position — earning",
+    exchangeRate: "Exchange rate", carryApy: "Carry APY", yieldAccrued: "Yield accrued",
+    carryAccruing: "● Carry accruing", exitCarry: "Exit Carry Position",
+    noActiveCarry: "No active carry position",
+    enterToEarn: "Enter a position to start earning wheat carry yield",
+    atApy: "At", inSixMonths: "APY, in 6 months:", kgGrainYield: "kg GRAIN yield",
+    onYourPos: "on your position.",
+    depositGrain: "Deposit GRAIN → receive cGRAIN. Exchange rate accrues at carry APY. Exit any time to receive more GRAIN than deposited.",
+    // Judge tab
+    judgeTitle: "GrainChain KZ\nJudge Testing Guide",
+    judgeSub: "Tokenizing Kazakh grain warehouse receipts on Solana. Built for the National Solana Hackathon by Decentrathon 2026. Everything is live and verifiable on Solana testnet.",
+    onChainAddresses: "On-chain addresses (testnet)",
+    deployFirst: "Deploy first with",
+    thenRun: "then run",
+    toPopulate: "to populate.",
+    judgeWallets: "Judge wallets (pre-funded)",
+    runWallets: "Run",
+    toCreate: "to create 5 funded wallets. Each has 1 SOL + 10,000 USDC + 1,000 GRAIN.",
+    importPhantom: "Import any wallet into Phantom (testnet mode) by going to Settings → Add Account → Import Private Key. Keys are in",
+    testingWalkthrough: "Testing walkthrough — 9 steps",
+    quickCli: "Quick CLI checks",
+    legalBasis: "Legal basis (for pitch)",
+    legalNote: "GrainChain KZ is the",
+    solanaNative: "Solana-native implementation",
+    govtPiloting: "of what the KZ government is actively piloting in Kostanay. This is not a hypothetical.",
+    copy: "Copy", explorer: "Explorer ↗",
+    checkSgrain: "Check sGRAIN rate (should be >1e9)",
+    checkCgrain: "Check cGRAIN rate (higher than sGRAIN)",
+    verifyGrain: "Verify grain locked in silo",
+    runDemo: "Run full demo script",
+    liveYield: "Live yield crank",
+    carryOracle: "Carry oracle (posts spread)",
+    steps: [
+      { h:"Oracle mints grain receipt", d:"Oracle signs Qoldau receipt → GrainReceipt PDA created on-chain. Keyed by serial (e.g. KST-2025-00847). Check the PDA on Explorer — it shows grade, protein, moisture, harvest date." },
+      { h:"Farmer fractionalizes → GRAIN tokens", d:"GrainReceipt → GRAIN SPL tokens (1 token = 1 kg). Mint from the protocol PDA. Check your GRAIN token account on Explorer." },
+      { h:"Lender deposits USDC", d:"USDC enters the LendingVault PDA. LenderPosition PDA created tracking your deposit + earned interest (ticks every block)." },
+      { h:"Farmer borrows USDC (Pyth oracle)", d:"GRAIN tokens locked in CollateralEscrow PDA. USDC released at 60% LTV. If testnet Pyth is stale, retry in 30s — feed updates every ~30 seconds." },
+      { h:"Deposit GRAIN into sGRAIN vault", d:"GRAIN transferred to GrainReserve PDA. sGRAIN minted at current exchange rate. Exchange rate ONLY increases — check it twice, 60s apart." },
+      { h:"Enter carry position → cGRAIN", d:"GRAIN locked in CarryGrainReserve PDA. cGRAIN minted. cGRAIN rate accrues faster than sGRAIN (based on live CME contango spread from carry oracle)." },
+      { h:"Run yield crank", d:"yarn crank --interval 10 keeps sGRAIN and cGRAIN rates ticking every 10s. Permissionless — any keypair can call it. Shows proof of autonomous yield." },
+      { h:"Repay loan + exit positions", d:"Repay USDC + interest → GRAIN collateral unlocked. Withdraw sGRAIN → receive more GRAIN than deposited (the delta = yield). Exit carry → same." },
+      { h:"Claim CHAIN governance rewards", d:"Pro-rata CHAIN tokens distributed based on sGRAIN balance over time. Synthetix-style reward_per_token accumulator. 10M CHAIN over 2 years." },
+    ],
+    legal: [
+      ["Civil Code Arts. 797–802","Grain receipts = non-equity securities"],
+      ["Law on Grain (2001)","192 licensed silos, Qoldau.kz registry"],
+      ["2022 Amendment ✅","Digital tokens legally replace paper receipts"],
+      ["Law on Digital Assets (2023)","Grain tokens = secured digital assets"],
+      ["AIFC","English common law, 0% VAT, Fintech Lab"],
+      ["Kostanay Pilot (Sep 2025)","Ministry of AI + AIFC blockchain program"],
+    ],
+    activity: "Activity",
+  },
+  ru: {
+    farmerDash: "Панель фермера", p2pMarket: "P2P рынок зерна",
+    lenderVault: "Хранилище кредитора", carryVault: "Кэрри-хранилище", judgeGuide: "Руководство судьи",
+    network: "Сеть",
+    grainTokens: "Токены GRAIN", sgrainVault: "sGRAIN (хранилище)", usdcBalance: "Баланс USDC",
+    chainRewards: "Награды CHAIN", autoCompounding: "Авто-компаундинг 3.2%",
+    availLiquidity: "Доступная ликвидность", govTokens: "Токены управления",
+    selectSilo: "Выбрать лицензированный элеватор", tokenizeGrain: "Токенизировать зерно",
+    selectSiloLabel: "Выберите элеватор", mintGrain: "Выпустить токены GRAIN", toSgrain: "→ Хранилище sGRAIN",
+    borrowAgainst: "Займ под залог зерна", maxBorrow: "Макс. займ", against: "против",
+    borrowUsdc: "Занять USDC", qoldauReceipt: "ЦИФРОВАЯ КВИТАНЦИЯ QOLDAU · ПОДТВЕРЖДЕНО БЛОКЧЕЙНОМ",
+    tokenizedWheat: "Токенизированная яровая пшеница — сертифицировано", oraclePrice: "Цена оракула",
+    totalValue: "Общая стоимость", maxBorrow60: "Макс. займ (60%)", status: "Статус",
+    inSiloVerified: "● В элеваторе, подтверждено", seasonalCarry: "Сезонная кэрри-возможность",
+    historicalSpread: "Исторический спред сен.→мар.", positiveYears: "Положительный в 80% лет",
+    tokenizeAtHarvest: "Токенизируйте при урожае, держите до весны.",
+    seasonalAppreciation: "Сезонный рост (6 мес.)", lendingYield: "Доходность займов (6 мес.)",
+    storageFeeShare: "Доля сборов за хранение (6 мес.)", carryVaultLabel: "Кэрри-хранилище (cGRAIN)",
+    totalPotential: "Общий потенциальный доход",
+    mintModal: "Выпустить токены GRAIN", grainQty: "Количество зерна", gostGrade: "Класс ГОСТ",
+    detailsStep: "1. Детали", verifyStep: "2. Проверка", mintStep: "3. Выпуск",
+    minting: "Выпускается…", mintTokens: "Выпустить токены", cancel: "Отмена",
+    borrowModal60: "60% LTV",
+    borrowAmt: "Сумма займа", borrowBtn: "Занять USDC",
+    allGrades: "Все классы", grade1: "Класс 1", grade2: "Класс 2", grade3: "Класс 3",
+    livePrices: "ЦЕНЫ В РЕАЛЬНОМ ВРЕМЕНИ", springWheat: "Яровая пшеница",
+    protein: "Протеин", moisture: "Влажность", available: "Доступно", seller: "Продавец",
+    lotFill: "Заполненность лота", sold: "% продано", buyNow: "Купить",
+    purchaseLot: "Покупка партии зерна", quantity: "Количество",
+    price: "Цена", receipt: "Квитанция", cost: "Стоимость", grainReceived: "Получено GRAIN",
+    settlement: "Расчёт", lessThan1s: "<1 секунды",
+    totalDeposited: "Всего внесено", earning: "ЗАРАБАТЫВАЕТСЯ",
+    usdcAcross: "USDC в 2 активных хранилищах", totalEarned: "Всего заработано",
+    blendedApy: "Средняя APY", nextPayout: "Следующая выплата",
+    grainSeniorVault: "Старшее хранилище GRAIN", sgrainYieldVault: "Доходное хранилище sGRAIN",
+    seniorTranche: "Старший транш · защита от первых потерь",
+    earnedSoFar: "заработано · внесено $25 000",
+    vaultUtil: "Утилизация хранилища", depositedLabel: "внесено",
+    yourPositions: "Ваши позиции", depositUsdc: "+ Внести USDC",
+    health: "Здоровье", dep: "внес.", howYieldWorks: "Как работает доходность кредитора",
+    ly1: "Внесите USDC в хранилище",
+    ly2: "Фермеры занимают USDC под залог токенов GRAIN в элеваторе (60% LTV)",
+    ly3: "Фермеры платят 11.2% годовых по займу",
+    ly4: "Проценты поступают к вам в реальном времени как заработанная доходность",
+    ly5: "Защита от дефолта: токены GRAIN автоматически ликвидируются через оракул Pyth",
+    securedByWheat: "Ваш USDC обеспечен",
+    physicallySegregated: "физически изолированной пшеницей",
+    inLicensedSilos: "в лицензированных казахстанских элеваторах. Зерно не может покинуть элеватор без сжигания токенов GRAIN.",
+    depositModal: "Внести USDC", earnSecured: "Заработайте 11.2% APY · обеспечено зерном в элеваторе",
+    depositAmt: "Сумма вклада", depositEarn: "Внести и зарабатывать",
+    annualYield: "Годовая доходность", monthly: "Ежемесячно",
+    carrySpreadLabel: "6-месячный кэрри", cmePyth: "Спред CME ZW сен.→мар. · Оракул Pyth",
+    zwSepSpot: "Спот ZW1! сентябрь", zwMarchFutures: "Фьючерс ZW март",
+    annualizedCarryApy: "Годовая кэрри APY", cgrainRate: "Курс cGRAIN",
+    yourCgrain: "Ваш cGRAIN",
+    howCarryWorks: "Как работает кэрри-доходность",
+    carryExplain: "Казахстанская пшеница убирается в авг.–сен. при сезонном минимуме цен. Мартовские фьючерсы CME торгуются с премией (контанго). Удерживая токенизированное зерно зимой, вы фиксируете этот спред как доходность — помимо сборов за хранение и процентов по займам.",
+    physicalGrain: "Физический GRAIN в элеваторе", alreadyHappening: "Уже происходит — без дополнительных затрат",
+    cgrainAccrues: "Курс cGRAIN аккумулирует спред", updatesEveryBlock: "Обновляется каждый блок через оракул",
+    exitInMarch: "Выход в марте", moreGrainReturned: "Больше GRAIN + доходность USDC от кэрри возвращается",
+    avgCarry: "Средний кэрри (2005–2024)", avgCarryVal: "18.4% сен.→мар., положительный в 80% лет",
+    historicalSpreadTitle: "Исторический спред сен.→мар.",
+    enterCarryPos: "Открыть кэрри-позицию", grainToLock: "GRAIN для блокировки",
+    available2: "Доступно", enterCarryBtn: "Открыть кэрри-позицию",
+    yourActiveCarry: "Ваша активная кэрри-позиция",
+    carryPosLabel: "КЭРРИ-ПОЗИЦИЯ · ХРАНИЛИЩЕ CGRAIN",
+    wheatCarry: "Кэрри-позиция по пшенице — зарабатывает",
+    exchangeRate: "Курс обмена", carryApy: "Кэрри APY", yieldAccrued: "Накопленная доходность",
+    carryAccruing: "● Кэрри накапливается", exitCarry: "Закрыть кэрри-позицию",
+    noActiveCarry: "Нет активной кэрри-позиции",
+    enterToEarn: "Откройте позицию, чтобы начать зарабатывать кэрри-доходность по пшенице",
+    atApy: "При", inSixMonths: "APY, через 6 месяцев:", kgGrainYield: "кг доходности GRAIN",
+    onYourPos: "на вашу позицию.",
+    depositGrain: "Внесите GRAIN → получите cGRAIN. Курс обмена аккумулируется по кэрри APY. Выйдите в любое время, получив больше GRAIN.",
+    judgeTitle: "GrainChain KZ\nРуководство для судей",
+    judgeSub: "Токенизация казахстанских квитанций зерновых складов на Solana. Создано для Национального хакатона Solana от Decentrathon 2026. Всё работает и верифицируется в сети Solana testnet.",
+    onChainAddresses: "Адреса on-chain (testnet)",
+    deployFirst: "Сначала запустите",
+    thenRun: "затем",
+    toPopulate: "для заполнения.",
+    judgeWallets: "Кошельки судей (предзаряженные)",
+    runWallets: "Запустите",
+    toCreate: "для создания 5 кошельков. У каждого: 1 SOL + 10 000 USDC + 1 000 GRAIN.",
+    importPhantom: "Импортируйте кошелёк в Phantom (режим testnet): Настройки → Добавить аккаунт → Импорт приватного ключа. Ключи в файле",
+    testingWalkthrough: "Процесс тестирования — 9 шагов",
+    quickCli: "Быстрые CLI-проверки",
+    legalBasis: "Правовая основа (для питча)",
+    legalNote: "GrainChain KZ является",
+    solanaNative: "нативной реализацией на Solana",
+    govtPiloting: "того, что правительство Казахстана активно тестирует в Костанае. Это не гипотетический проект.",
+    copy: "Копировать", explorer: "Обозреватель ↗",
+    checkSgrain: "Проверить курс sGRAIN (должен быть >1e9)",
+    checkCgrain: "Проверить курс cGRAIN (выше sGRAIN)",
+    verifyGrain: "Проверить зерно в элеваторе",
+    runDemo: "Запустить демо-скрипт",
+    liveYield: "Живой кранк доходности",
+    carryOracle: "Кэрри-оракул (публикует спред)",
+    steps: [
+      { h:"Оракул создаёт квитанцию на зерно", d:"Оракул подписывает квитанцию Qoldau → PDA GrainReceipt создаётся on-chain. Ключ — серийный номер (напр. KST-2025-00847). Проверьте PDA в обозревателе — класс, протеин, влажность, дата урожая." },
+      { h:"Фермер фракционирует → токены GRAIN", d:"GrainReceipt → токены GRAIN SPL (1 токен = 1 кг). Выпуск из PDA протокола. Проверьте аккаунт токенов GRAIN в обозревателе." },
+      { h:"Кредитор вносит USDC", d:"USDC поступает в PDA LendingVault. Создаётся PDA LenderPosition, отслеживающий депозит + заработанные проценты (обновляется каждый блок)." },
+      { h:"Фермер занимает USDC (оракул Pyth)", d:"Токены GRAIN заблокированы в PDA CollateralEscrow. USDC выдаётся при 60% LTV. Если Pyth testnet устарел — повторите через 30 с." },
+      { h:"Внести GRAIN в хранилище sGRAIN", d:"GRAIN переводится в PDA GrainReserve. sGRAIN выпускается по текущему курсу. Курс ТОЛЬКО растёт — проверьте дважды с интервалом 60 с." },
+      { h:"Открыть кэрри-позицию → cGRAIN", d:"GRAIN заблокирован в PDA CarryGrainReserve. cGRAIN выпущен. Курс cGRAIN растёт быстрее sGRAIN (на основе живого спреда CME контанго от оракула)." },
+      { h:"Запустить кранк доходности", d:"yarn crank --interval 10 обновляет курсы sGRAIN и cGRAIN каждые 10 с. Без разрешений — любой ключ может вызвать. Доказательство автономной доходности." },
+      { h:"Погасить займ + выйти из позиций", d:"Погасите USDC + проценты → залог GRAIN разблокирован. Выведите sGRAIN → получите больше GRAIN (разница = доходность). Выход из кэрри — аналогично." },
+      { h:"Получить награды CHAIN", d:"Токены CHAIN распределяются пропорционально балансу sGRAIN. Аккумулятор reward_per_token в стиле Synthetix. 10 млн CHAIN за 2 года." },
+    ],
+    legal: [
+      ["ГК РК ст. 797–802","Зерновые квитанции = неакционерные ценные бумаги"],
+      ["Закон о зерне (2001)","192 лицензированных элеватора, реестр Qoldau.kz"],
+      ["Поправка 2022 ✅","Цифровые токены юридически заменяют бумажные квитанции"],
+      ["Закон о цифровых активах (2023)","Зерновые токены = обеспеченные цифровые активы"],
+      ["МФЦА","Английское общее право, 0% НДС, Fintech Lab"],
+      ["Пилот в Костанае (сен. 2025)","Мин. цифрового развития + блокчейн-программа МФЦА"],
+    ],
+    activity: "Активность",
+  },
+  kz: {
+    farmerDash: "Диқан панелі", p2pMarket: "P2P астық нарығы",
+    lenderVault: "Несие берушінің қоймасы", carryVault: "Кэрри қоймасы", judgeGuide: "Судья нұсқаулығы",
+    network: "Желі",
+    grainTokens: "GRAIN токендері", sgrainVault: "sGRAIN (қойма)", usdcBalance: "USDC балансы",
+    chainRewards: "CHAIN сыйақылары", autoCompounding: "Авто-компаундинг 3.2%",
+    availLiquidity: "Қолжетімді өтімділік", govTokens: "Басқару токендері",
+    selectSilo: "Лицензиялы элеватор таңдаңыз", tokenizeGrain: "Астықты токенизациялау",
+    selectSiloLabel: "Элеватор таңдаңыз", mintGrain: "GRAIN токендерін шығару", toSgrain: "→ sGRAIN қоймасы",
+    borrowAgainst: "Астық кепілімен қарыз алу", maxBorrow: "Макс. қарыз", against: "қарсы",
+    borrowUsdc: "USDC қарызға алу", qoldauReceipt: "QOLDAU ЦИФРЛЫҚ ҚОЛХАТЫ · БЛОКЧЕЙНМЕН РАСТАЛҒАН",
+    tokenizedWheat: "Токенизацияланған жазғы бидай — сертификатталған", oraclePrice: "Оракул бағасы",
+    totalValue: "Жалпы құны", maxBorrow60: "Макс. қарыз (60%)", status: "Күйі",
+    inSiloVerified: "● Элеватorda, расталды", seasonalCarry: "Маусымдық кэрри мүмкіндігі",
+    historicalSpread: "Тарихи қыр.→нау. спреді", positiveYears: "80% жылдарда оң",
+    tokenizeAtHarvest: "Жинаймен токенизациялаңыз, көктемге дейін ұстаңыз.",
+    seasonalAppreciation: "Маусымдық өсу (6 ай)", lendingYield: "Несие табысы (6 ай)",
+    storageFeeShare: "Сақтау ақысы үлесі (6 ай)", carryVaultLabel: "Кэрри қоймасы (cGRAIN)",
+    totalPotential: "Жалпы мүмкін кіріс",
+    mintModal: "GRAIN токендерін шығару", grainQty: "Астық мөлшері", gostGrade: "МЕСТ сорты",
+    detailsStep: "1. Мәліметтер", verifyStep: "2. Тексеру", mintStep: "3. Шығару",
+    minting: "Шығарылуда…", mintTokens: "Токендерді шығару", cancel: "Болдырмау",
+    borrowModal60: "60% LTV",
+    borrowAmt: "Қарыз сомасы", borrowBtn: "USDC қарызға алу",
+    allGrades: "Барлық сорттар", grade1: "1-сорт", grade2: "2-сорт", grade3: "3-сорт",
+    livePrices: "ТІКЕЛЕЙ БАҒАЛАР", springWheat: "Жазғы бидай",
+    protein: "Протеин", moisture: "Ылғалдылық", available: "Қолжетімді", seller: "Сатушы",
+    lotFill: "Лот толтырылуы", sold: "% сатылды", buyNow: "Сатып алу",
+    purchaseLot: "Астық партиясын сатып алу", quantity: "Мөлшер",
+    price: "Баға", receipt: "Қолхат", cost: "Құны", grainReceived: "GRAIN алынды",
+    settlement: "Есеп айырысу", lessThan1s: "<1 секунд",
+    totalDeposited: "Жалпы салынған", earning: "ТАБЫС АЛЫНУДА",
+    usdcAcross: "USDC 2 белсенді қоймада", totalEarned: "Жалпы табыс",
+    blendedApy: "Орташа APY", nextPayout: "Келесі төлем",
+    grainSeniorVault: "GRAIN Аға қоймасы", sgrainYieldVault: "sGRAIN кіріс қоймасы",
+    seniorTranche: "Аға транш · бірінші шығынды қорғау",
+    earnedSoFar: "табылды · $25 000 салынды",
+    vaultUtil: "Қойма пайдаланылуы", depositedLabel: "салынды",
+    yourPositions: "Сіздің позицияларыңыз", depositUsdc: "+ USDC салу",
+    health: "Денсаулық", dep: "сал.", howYieldWorks: "Несие берушінің табысы қалай жұмыс істейді",
+    ly1: "USDC-ні қоймаға салыңыз",
+    ly2: "Диқандар элеватордағы GRAIN токендерін кепілге қойып USDC қарызға алады (60% LTV)",
+    ly3: "Диқандар қарыз бойынша 11.2% жылдық пайыз төлейді",
+    ly4: "Пайыздар сізге нақты уақытта табыс ретінде түседі",
+    ly5: "Дефолттан қорғау: GRAIN токендері Pyth оракулы арқылы автоматты түрде ликвидацияланады",
+    securedByWheat: "Сіздің USDC-ңіз қамтамасыз етілген",
+    physicallySegregated: "физикалық оқшауланған бидаймен",
+    inLicensedSilos: "лицензиялы Қазақстан элеваторларында. Астық GRAIN токендерін өртемей элеватордан шыға алмайды.",
+    depositModal: "USDC салу", earnSecured: "11.2% APY табыңыз · элеватордағы астықпен қамтамасыз",
+    depositAmt: "Салым сомасы", depositEarn: "Салып, таба бастаңыз",
+    annualYield: "Жылдық табыс", monthly: "Ай сайын",
+    carrySpreadLabel: "6 айлық кэрри", cmePyth: "CME ZW қыр.→нау. контанго спреді · Pyth оракулы",
+    zwSepSpot: "ZW1! қыркүйек споты", zwMarchFutures: "ZW наурыз фьючерсі",
+    annualizedCarryApy: "Жылдандырылған кэрри APY", cgrainRate: "cGRAIN бағамы",
+    yourCgrain: "Сіздің cGRAIN",
+    howCarryWorks: "Кэрри табысы қалай жұмыс істейді",
+    carryExplain: "Қазақстан бидайы маусымдық баға минимумында тамыз–қыркүйекте жиналады. CME наурыз фьючерстері үстемемен (контанго) саудаланады. Токенизацияланған астықты қыста ұстай отырып, сіз сақтау ақысы мен несие пайыздарынан тыс осы спредті табыс ретінде аласыз.",
+    physicalGrain: "Элеватордағы физикалық GRAIN", alreadyHappening: "Әлдеқашан жүріп жатыр — қосымша шығынсыз",
+    cgrainAccrues: "cGRAIN бағамы спредті жинақтайды", updatesEveryBlock: "Оракул арқылы әр блокта жаңартылады",
+    exitInMarch: "Наурызда шығу", moreGrainReturned: "Көбірек GRAIN + USDC кэрри табысы қайтарылады",
+    avgCarry: "Орт. кэрри (2005–2024)", avgCarryVal: "18.4% қыр.→нау., 80% жылдарда оң",
+    historicalSpreadTitle: "Тарихи қыр.→нау. спреді",
+    enterCarryPos: "Кэрри позициясына кіру", grainToLock: "Бұғаттауға GRAIN",
+    available2: "Қолжетімді", enterCarryBtn: "Кэрри позициясына кіру",
+    yourActiveCarry: "Сіздің белсенді кэрри позицияңыз",
+    carryPosLabel: "КЭРРИ ПОЗИЦИЯ · CGRAIN ҚОЙМАСЫ",
+    wheatCarry: "Бидай кэрри позициясы — табыс алынуда",
+    exchangeRate: "Айырбас бағамы", carryApy: "Кэрри APY", yieldAccrued: "Жинақталған табыс",
+    carryAccruing: "● Кэрри жинақталуда", exitCarry: "Кэрри позициясынан шығу",
+    noActiveCarry: "Белсенді кэрри позициясы жоқ",
+    enterToEarn: "Бидай кэрри табысын ала бастау үшін позиция ашыңыз",
+    atApy: "", inSixMonths: "APY кезінде, 6 айдан кейін:", kgGrainYield: "кг GRAIN табысы",
+    onYourPos: "позицияңызға.",
+    depositGrain: "GRAIN салыңыз → cGRAIN алыңыз. Кэрри APY бойынша бағам жинақталады. Кез келген уақытта шығып, салғаннан көп GRAIN алыңыз.",
+    judgeTitle: "GrainChain KZ\nСудья тестілеу нұсқаулығы",
+    judgeSub: "Solana желісіндегі Қазақстан астық қоймасының цифрлық қолхаттарын токенизациялау. Decentrathon 2026 Ұлттық Solana хакатоны үшін жасалған. Барлығы Solana testnet желісінде тікелей және тексерілетін.",
+    onChainAddresses: "Желідегі мекенжайлар (testnet)",
+    deployFirst: "Алдымен іске қосыңыз",
+    thenRun: "содан кейін",
+    toPopulate: "толтыру үшін.",
+    judgeWallets: "Судья әмиянлары (алдын ала толтырылған)",
+    runWallets: "Іске қосыңыз",
+    toCreate: "5 толтырылған әмиян жасау үшін. Әрқайсысында: 1 SOL + 10 000 USDC + 1 000 GRAIN.",
+    importPhantom: "Кез келген әмиянды Phantom-ға импорттаңыз (testnet режимі): Параметрлер → Аккаунт қосу → Жеке кілтті импорттау. Кілттер файлда",
+    testingWalkthrough: "Тестілеу процесі — 9 қадам",
+    quickCli: "Жылдам CLI тексерулері",
+    legalBasis: "Құқықтық негіз (питч үшін)",
+    legalNote: "GrainChain KZ болып табылады",
+    solanaNative: "Solana-нативті іске асыру",
+    govtPiloting: "Қазақстан үкіметі Қостанайда белсенді сынап жатқан нәрсенің. Бұл гипотетикалық жоба емес.",
+    copy: "Көшіру", explorer: "Шолғыш ↗",
+    checkSgrain: "sGRAIN бағамын тексеру (>1e9 болуы керек)",
+    checkCgrain: "cGRAIN бағамын тексеру (sGRAIN-нен жоғары)",
+    verifyGrain: "Элеватордағы астықты тексеру",
+    runDemo: "Демо-скриптті іске қосу",
+    liveYield: "Тікелей кіріс кранкі",
+    carryOracle: "Кэрри оракулы (спредті жариялайды)",
+    steps: [
+      { h:"Оракул астық қолхатын жасайды", d:"Оракул Qoldau қолхатына қол қояды → GrainReceipt PDA желіде жасалады. Кілт — сериялық нөмір (мыс. KST-2025-00847). PDA-ны шолғышта тексеріңіз — сорт, протеин, ылғалдылық, жинау күні." },
+      { h:"Диқан фракциялайды → GRAIN токендері", d:"GrainReceipt → GRAIN SPL токендері (1 токен = 1 кг). Протокол PDA-дан шығару. Шолғышта GRAIN токен аккаунтыңызды тексеріңіз." },
+      { h:"Несие беруші USDC салады", d:"USDC LendingVault PDA-ға түседі. Депозитіңізді + табылған пайызды қадағалайтын LenderPosition PDA жасалады (әр блокта жаңарады)." },
+      { h:"Диқан USDC қарызға алады (Pyth оракулы)", d:"GRAIN токендері CollateralEscrow PDA-да бұғатталды. USDC 60% LTV-де берілді. Testnet Pyth ескірсе — 30 с кейін қайталаңыз." },
+      { h:"GRAIN-ді sGRAIN қоймасына салу", d:"GRAIN GrainReserve PDA-ға ауыстырылады. sGRAIN ағымдағы бағаммен шығарылады. Бағам ТЕК артады — 60 с аралықпен екі рет тексеріңіз." },
+      { h:"Кэрри позициясына кіру → cGRAIN", d:"GRAIN CarryGrainReserve PDA-да бұғатталды. cGRAIN шығарылды. cGRAIN бағамы sGRAIN-нен тезірек өседі (оракулдан тікелей CME контанго спреді негізінде)." },
+      { h:"Кіріс кранкін іске қосу", d:"yarn crank --interval 10 sGRAIN мен cGRAIN бағамдарын 10 с сайын жаңартады. Рұқсатсыз — кез келген кілт шақыра алады. Автономды кірістің дәлелі." },
+      { h:"Қарызды өтеу + позициялардан шығу", d:"USDC + пайызды өтеңіз → GRAIN кепілі бұғатталмады. sGRAIN шығарыңыз → салғаннан көп GRAIN алыңыз (айырмасы = табыс). Кэрриден шығу — сол сияқты." },
+      { h:"CHAIN басқару сыйақыларын алу", d:"CHAIN токендері sGRAIN балансына пропорционалды түрде таратылады. Synthetix стиліндегі reward_per_token жинақтаушы. 2 жылда 10 млн CHAIN." },
+    ],
+    legal: [
+      ["АК 797–802-баптары","Астық қолхаттары = акционерлік емес бағалы қағаздар"],
+      ["Астық туралы заң (2001)","192 лицензиялы элеватор, Qoldau.kz тізілімі"],
+      ["2022 жылғы өзгеріс ✅","Цифрлық токендер қағаз қолхаттарды заңды түрде алмастырады"],
+      ["Цифрлық активтер туралы заң (2023)","Астық токендері = қамтамасыз етілген цифрлық активтер"],
+      ["ҚМҚО","Ағылшын жалпы құқығы, 0% ҚҚС, Fintech Lab"],
+      ["Қостанай пилоты (қыр. 2025)","Цифрлық даму министрлігі + ҚМҚО блокчейн бағдарламасы"],
+    ],
+    activity: "Белсенділік",
+  },
+} as const;
 
 // ─── FONTS + CSS ─────────────────────────────────────────────────────────────
 const GLOBAL_CSS = `
@@ -374,6 +744,17 @@ tr:hover td { background: rgba(26,138,106,.03); }
 .modal-sub   { font-size: 13px; color: var(--ink-l); margin-bottom: 18px; }
 .modal-footer { display: flex; gap: 8px; margin-top: 18px; }
 
+/* ── Lang switcher ── */
+.lang-switcher { display: flex; gap: 3px; }
+.lang-btn {
+  padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  border: 1.5px solid rgba(255,255,255,.18); background: transparent;
+  color: rgba(255,255,255,.5); cursor: pointer; font-family: var(--mono);
+  transition: all .12s; letter-spacing: .03em;
+}
+.lang-btn:hover { background: rgba(255,255,255,.1); color: rgba(255,255,255,.85); }
+.lang-btn.active { background: var(--gold); border-color: var(--gold); color: white; }
+
 /* ── Toast ── */
 .toast {
   position: fixed; bottom: 20px; right: 20px; z-index: 300;
@@ -539,6 +920,7 @@ function Modal({ title, sub, children, footer, onClose }: any) {
 
 // ─── FARMER TAB ───────────────────────────────────────────────────────────────
 function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
+  const { lang } = useLang(); const t = T[lang];
   const [silo, setSilo] = useState<any>(null);
   const [mintModal, setMintModal] = useState(false);
   const [borrowModal, setBorrowModal] = useState(false);
@@ -582,10 +964,10 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
     <div className="page">
       <div className="stats c4 mb-20">
         {[
-          { l:"GRAIN tokens", v:fmtK(wallet.grain/1_000_000), c:"green", s:`≈ $${fmt(grainVal,0)} USDC` },
-          { l:"sGRAIN (vault)", v:fmtK(wallet.sgrain/1_000_000), c:"green", s:"Auto-compounding 3.2%" },
-          { l:"USDC balance", v:fmt(wallet.usdc,0), c:"", s:"Available liquidity" },
-          { l:"CHAIN rewards", v:wallet.chain, c:"gold", s:"Governance tokens" },
+          { l:t.grainTokens, v:fmtK(wallet.grain/1_000_000), c:"green", s:`≈ $${fmt(grainVal,0)} USDC` },
+          { l:t.sgrainVault, v:fmtK(wallet.sgrain/1_000_000), c:"green", s:t.autoCompounding },
+          { l:t.usdcBalance, v:fmt(wallet.usdc,0), c:"", s:t.availLiquidity },
+          { l:t.chainRewards, v:wallet.chain, c:"gold", s:t.govTokens },
         ].map(s => (
           <div className="stat-card" key={s.l}>
             <div className="stat-label">{s.l}</div>
@@ -598,7 +980,7 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
       <div className="g2">
         <div>
           <div className="card mb-12">
-            <div className="card-title">Select Licensed Silo</div>
+            <div className="card-title">{t.selectSilo}</div>
             <div className="silo-grid">
               {SILOS.map(s => (
                 <div key={s.id} className={`silo-item ${silo?.id===s.id?"sel":""}`} onClick={() => setSilo(s)}>
@@ -611,47 +993,47 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
 
           <div className="card mb-12">
             <div className="flex-between mb-12">
-              <div className="card-title" style={{margin:0}}>Tokenize Grain</div>
-              {silo ? <span className="badge badge-teal">{silo.name}</span> : <span className="badge badge-gold">Select silo</span>}
+              <div className="card-title" style={{margin:0}}>{t.tokenizeGrain}</div>
+              {silo ? <span className="badge badge-teal">{silo.name}</span> : <span className="badge badge-gold">{t.selectSiloLabel}</span>}
             </div>
-            <p className="text-sm mb-12">Deposit grain at a Qoldau-registered silo. 1 GRAIN = 1 kg of certified wheat.</p>
+            <p className="text-sm mb-12">{lang==="en"?"Deposit grain at a Qoldau-registered silo. 1 GRAIN = 1 kg of certified wheat.":lang==="ru"?"Сдайте зерно на элеватор Qoldau. 1 GRAIN = 1 кг сертифицированной пшеницы.":"Астықты Qoldau тіркелген элеваторға тапсырыңыз. 1 GRAIN = 1 кг сертификатталған бидай."}</p>
             <div className="flex-gap">
-              <button className="btn btn-primary" disabled={!silo} onClick={() => setMintModal(true)}>Mint GRAIN Tokens</button>
-              <button className="btn btn-outline" disabled={wallet.grain < 100_000_000} onClick={handleSgrain}>→ sGRAIN Vault</button>
+              <button className="btn btn-primary" disabled={!silo} onClick={() => setMintModal(true)}>{t.mintGrain}</button>
+              <button className="btn btn-outline" disabled={wallet.grain < 100_000_000} onClick={handleSgrain}>{t.toSgrain}</button>
             </div>
           </div>
 
           <div className="card">
             <div className="flex-between mb-8">
-              <div className="card-title" style={{margin:0}}>Borrow Against Grain</div>
+              <div className="card-title" style={{margin:0}}>{t.borrowAgainst}</div>
               <span className="badge badge-amber">60% LTV</span>
             </div>
-            <div className="warn-box">Max borrow: <strong>${fmt(maxBorrow,0)}</strong> against {fmtK(wallet.grain/1_000_000)} GRAIN. 11.2% APR.</div>
-            <button className="btn btn-gold btn-full" disabled={wallet.grain < 100_000_000} onClick={() => setBorrowModal(true)}>Borrow USDC</button>
+            <div className="warn-box">{t.maxBorrow}: <strong>${fmt(maxBorrow,0)}</strong> {t.against} {fmtK(wallet.grain/1_000_000)} GRAIN. 11.2% APR.</div>
+            <button className="btn btn-gold btn-full" disabled={wallet.grain < 100_000_000} onClick={() => setBorrowModal(true)}>{t.borrowUsdc}</button>
           </div>
         </div>
 
         <div>
           {wallet.grain > 0 && (
             <div className="receipt-card mb-12">
-              <div className="receipt-serial">QOLDAU DIGITAL RECEIPT · BLOCKCHAIN VERIFIED</div>
+              <div className="receipt-serial">{t.qoldauReceipt}</div>
               <div className="receipt-amount">{fmtK(wallet.grain/1_000_000)} GRAIN</div>
-              <div className="receipt-sub">Tokenized spring wheat — certified</div>
-              <div className="receipt-row"><span className="receipt-key">Oracle price</span><span className="receipt-val">${fmt(wPrice*36.744)}/tonne</span></div>
-              <div className="receipt-row"><span className="receipt-key">Total value</span><span className="receipt-val">${fmt(grainVal,0)}</span></div>
-              <div className="receipt-row"><span className="receipt-key">Max borrow (60%)</span><span className="receipt-val">${fmt(maxBorrow,0)}</span></div>
-              <div className="receipt-row"><span className="receipt-key">Status</span><span className="receipt-val" style={{color:"#5ecba1"}}>● In-silo, verified</span></div>
+              <div className="receipt-sub">{t.tokenizedWheat}</div>
+              <div className="receipt-row"><span className="receipt-key">{t.oraclePrice}</span><span className="receipt-val">${fmt(wPrice*36.744)}/tonne</span></div>
+              <div className="receipt-row"><span className="receipt-key">{t.totalValue}</span><span className="receipt-val">${fmt(grainVal,0)}</span></div>
+              <div className="receipt-row"><span className="receipt-key">{t.maxBorrow60}</span><span className="receipt-val">${fmt(maxBorrow,0)}</span></div>
+              <div className="receipt-row"><span className="receipt-key">{t.status}</span><span className="receipt-val" style={{color:"#5ecba1"}}>● {t.inSiloVerified.replace("● ","")}</span></div>
             </div>
           )}
 
           <div className="card">
-            <div className="card-title">Seasonal carry opportunity</div>
-            <div className="info-box">Historical Sep→Mar spread: <strong>+18.4% avg (2005–2024)</strong>. Positive in 80% of years. Tokenize at harvest, hold to spring.</div>
+            <div className="card-title">{t.seasonalCarry}</div>
+            <div className="info-box">{t.historicalSpread}: <strong>+18.4% avg (2005–2024)</strong>. {t.positiveYears}. {t.tokenizeAtHarvest}</div>
             {[
-              ["Seasonal appreciation (6 mo)","+9.2%","var(--teal-d)"],
-              ["Lending yield (6 mo)","+5.5%","var(--teal-d)"],
-              ["Storage fee share (6 mo)","+1.5%","var(--teal-d)"],
-              ["Carry vault (cGRAIN)","+7.5%","var(--gold)"],
+              [t.seasonalAppreciation,"+9.2%","var(--teal-d)"],
+              [t.lendingYield,"+5.5%","var(--teal-d)"],
+              [t.storageFeeShare,"+1.5%","var(--teal-d)"],
+              [t.carryVaultLabel,"+7.5%","var(--gold)"],
             ].map(([l,v,c])=>(
               <div className="flex-between mt-8" key={l} style={{fontSize:13}}>
                 <span style={{color:"var(--ink-l)"}}>{l}</span>
@@ -660,7 +1042,7 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
             ))}
             <div className="divider"/>
             <div className="flex-between" style={{fontSize:14}}>
-              <strong>Total potential return</strong>
+              <strong>{t.totalPotential}</strong>
               <span style={{fontFamily:"var(--mono)",fontWeight:600,color:"var(--teal-d)",fontSize:16}}>~+23.7%</span>
             </div>
           </div>
@@ -668,28 +1050,28 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
       </div>
 
       {mintModal && (
-        <Modal title="Mint GRAIN Tokens" sub={`Silo: ${silo?.name}`}
+        <Modal title={t.mintModal} sub={`${lang==="en"?"Silo":lang==="ru"?"Элеватор":"Элеватор"}: ${silo?.name}`}
           onClose={() => setMintModal(false)}
           footer={<>
-            <button className="btn btn-outline" style={{flex:1}} onClick={() => setMintModal(false)}>Cancel</button>
+            <button className="btn btn-outline" style={{flex:1}} onClick={() => setMintModal(false)}>{t.cancel}</button>
             <button className="btn btn-primary" style={{flex:1}} disabled={!kg||parseFloat(kg)<=0||minting} onClick={handleMint}>
-              {minting ? "Minting…" : "Mint Tokens"}
+              {minting ? t.minting : t.mintTokens}
             </button>
           </>}>
           <div className="steps">
-            <div className={`step ${minting?"done":"active"}`}>1. Details</div>
-            <div className={`step ${minting?"active":""}`}>2. Verify</div>
-            <div className="step">3. Mint</div>
+            <div className={`step ${minting?"done":"active"}`}>{t.detailsStep}</div>
+            <div className={`step ${minting?"active":""}`}>{t.verifyStep}</div>
+            <div className="step">{t.mintStep}</div>
           </div>
           <div className="field">
-            <label className="field-label">Grain quantity</label>
+            <label className="field-label">{t.grainQty}</label>
             <div className="input-wrap">
               <input className="input round-l" type="number" placeholder="e.g. 1000" value={kg} onChange={e=>setKg(e.target.value)}/>
               <div className="input-sfx">kg</div>
             </div>
           </div>
           <div className="field">
-            <label className="field-label">GOST Grade</label>
+            <label className="field-label">{t.gostGrade}</label>
             <select style={{width:"100%",height:38,border:"1.5px solid var(--border-m)",borderRadius:"var(--r)",fontFamily:"var(--sans)",fontSize:13,padding:"0 11px",background:"var(--sand)"}}
               value={grade} onChange={e=>setGrade(e.target.value)}>
               {(silo?.grades||[]).map((g: string)=>(<option key={g} value={g}>Grade {g} {g==="1"?"(Premium)":g==="2"?"(Standard)":"(Feed)"}</option>))}
@@ -707,15 +1089,15 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
             <button className="btn btn-gold" style={{flex:1}} disabled={!borrowAmt||parseFloat(borrowAmt)<=0||parseFloat(borrowAmt)>maxBorrow} onClick={handleBorrow}>Borrow</button>
           </>}>
           <div className="field">
-            <label className="field-label">Borrow amount (USDC)</label>
+            <label className="field-label">{t.borrowAmt} (USDC)</label>
             <div className="input-wrap">
               <input className="input round-l" type="number" placeholder={`Max ${fmt(maxBorrow,0)}`} value={borrowAmt} onChange={e=>setBorrowAmt(e.target.value)}/>
               <div className="input-sfx">USDC</div>
             </div>
           </div>
-          <div className="warn-box">Interest rate: <strong>11.2% APR</strong>. Liquidation at 80% LTV. Repay by March to capture spring appreciation.</div>
+          <div className="warn-box">{lang==="en"?"Interest rate:":lang==="ru"?"Процентная ставка:":"Пайыздық мөлшерлеме:"} <strong>11.2% APR</strong>. {lang==="en"?"Liquidation at 80% LTV. Repay by March to capture spring appreciation.":lang==="ru"?"Ликвидация при 80% LTV. Погасите к марту для весеннего роста.":"80% LTV кезінде ликвидация. Көктемгі өсімді алу үшін наурызға дейін өтеңіз."}</div>
           {borrowAmt&&parseFloat(borrowAmt)>0&&(
-            <div className="info-box">Repayment in 6 mo: <strong>${fmt(parseFloat(borrowAmt)*1.056,0)}</strong> · Est. spring grain value: <strong>${fmt(grainVal*1.18,0)}</strong></div>
+            <div className="info-box">{lang==="en"?"Repayment in 6 mo:":lang==="ru"?"Выплата через 6 мес.:":"6 айдан кейін өтеу:"} <strong>${fmt(parseFloat(borrowAmt)*1.056,0)}</strong> · {lang==="en"?"Est. spring grain value:":lang==="ru"?"Ожид. стоимость зерна весной:":"Болжамды көктемгі астық құны:"} <strong>${fmt(grainVal*1.18,0)}</strong></div>
           )}
         </Modal>
       )}
@@ -725,6 +1107,7 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
 
 // ─── MARKET TAB ───────────────────────────────────────────────────────────────
 function MarketTab({ wallet, setWallet, wPrice, toast, log }: any) {
+  const { lang } = useLang(); const t = T[lang];
   const [filter, setFilter] = useState("all");
   const [buyModal, setBuyModal] = useState<any>(null);
   const [buyTonnes, setBuyTonnes] = useState("");
@@ -732,25 +1115,25 @@ function MarketTab({ wallet, setWallet, wPrice, toast, log }: any) {
   const filtered = filter==="all"?MARKET_LOTS:MARKET_LOTS.filter(l=>l.grade===filter.replace("g",""));
 
   function handleBuy() {
-    const t = parseFloat(buyTonnes); if (!t||!buyModal) return;
-    const cost = t * buyModal.price * 1000;
-    if (cost > wallet.usdc) { toast("Insufficient USDC","err"); return; }
-    setWallet((w: any) => ({ ...w, usdc: w.usdc - cost, grain: w.grain + t*1_000_000 }));
-    log({ c:"var(--sky)", t:`Bought ${t}t wheat (Grade ${buyModal.grade}) from ${buyModal.silo} · ${fmt(cost/1000,0)}K USDC · ${buyModal.id}`, ts:nowStr() });
-    toast(`✓ ${t}t purchased · ${fmtK(t)} GRAIN in wallet`);
+    const tonnes = parseFloat(buyTonnes); if (!tonnes||!buyModal) return;
+    const cost = tonnes * buyModal.price * 1000;
+    if (cost > wallet.usdc) { toast(lang==="en"?"Insufficient USDC":lang==="ru"?"Недостаточно USDC":"USDC жеткіліксіз","err"); return; }
+    setWallet((w: any) => ({ ...w, usdc: w.usdc - cost, grain: w.grain + tonnes*1_000_000 }));
+    log({ c:"var(--sky)", t:`${lang==="en"?"Bought":lang==="ru"?"Куплено":"Сатып алынды"} ${tonnes}t wheat (Grade ${buyModal.grade}) from ${buyModal.silo} · ${fmt(cost/1000,0)}K USDC · ${buyModal.id}`, ts:nowStr() });
+    toast(`✓ ${tonnes}t ${lang==="en"?"purchased":lang==="ru"?"куплено":"сатып алынды"} · ${fmtK(tonnes)} GRAIN`);
     setBuyModal(null); setBuyTonnes("");
   }
 
   return (
     <div className="page">
       <div className="stats c3 mb-20">
-        <div className="stat-card"><div className="stat-label">Active lots</div><div className="stat-val">{MARKET_LOTS.length}</div><div className="stat-sub">Across 4 silos</div></div>
-        <div className="stat-card"><div className="stat-label">Total available</div><div className="stat-val green">{fmtK(MARKET_LOTS.reduce((s,l)=>s+(l.tonnes*(1-l.fill)),0))}t</div><div className="stat-sub">Ready to buy</div></div>
-        <div className="stat-card"><div className="stat-label">CME ZW1! price</div><div className="stat-val gold">${fmt(wPrice*36.744)}/t</div><div className="stat-sub">Pyth oracle · live</div></div>
+        <div className="stat-card"><div className="stat-label">{lang==="en"?"Active lots":lang==="ru"?"Активных лотов":"Белсенді лоттар"}</div><div className="stat-val">{MARKET_LOTS.length}</div><div className="stat-sub">{lang==="en"?"Across 4 silos":lang==="ru"?"В 4 элеваторах":"4 элеватордан"}</div></div>
+        <div className="stat-card"><div className="stat-label">{lang==="en"?"Total available":lang==="ru"?"Всего доступно":"Жалпы қолжетімді"}</div><div className="stat-val green">{fmtK(MARKET_LOTS.reduce((s,l)=>s+(l.tonnes*(1-l.fill)),0))}t</div><div className="stat-sub">{lang==="en"?"Ready to buy":lang==="ru"?"Готово к покупке":"Сатуға дайын"}</div></div>
+        <div className="stat-card"><div className="stat-label">CME ZW1! {lang==="en"?"price":lang==="ru"?"цена":"бағасы"}</div><div className="stat-val gold">${fmt(wPrice*36.744)}/t</div><div className="stat-sub">Pyth oracle · live</div></div>
       </div>
 
       <div className="flex-gap mb-16 flex-wrap">
-        {[["all","All grades"],["g1","Grade 1"],["g2","Grade 2"],["g3","Grade 3"]].map(([id,lbl])=>(
+        {[[`all`,t.allGrades],[`g1`,t.grade1],[`g2`,t.grade2],[`g3`,t.grade3]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setFilter(id)}
             style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:500,border:"1.5px solid",cursor:"pointer",
               background: filter===id?"var(--ink)":"transparent",
@@ -760,7 +1143,7 @@ function MarketTab({ wallet, setWallet, wPrice, toast, log }: any) {
           </button>
         ))}
         <div style={{marginLeft:"auto"}} className="flex-gap">
-          <span className="badge badge-live">LIVE PRICES</span>
+          <span className="badge badge-live">{t.livePrices}</span>
           <span className="text-sm">Pyth ZW1! · {fmt(wPrice)}¢/bu</span>
         </div>
       </div>
@@ -769,44 +1152,44 @@ function MarketTab({ wallet, setWallet, wPrice, toast, log }: any) {
         <div key={lot.id} className="lot-card" onClick={()=>setBuyModal(lot)}>
           <div>
             <div className="flex-gap mb-8">
-              <span className={`lot-grade ${lot.grade==="1"?"g1":lot.grade==="2"?"g2":"g3"}`}>Grade {lot.grade}</span>
+              <span className={`lot-grade ${lot.grade==="1"?"g1":lot.grade==="2"?"g2":"g3"}`}>{lang==="en"?"Grade":lang==="ru"?"Класс":"Сорт"} {lot.grade}</span>
               <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--ink-l)"}}>{lot.id}</span>
               <span className="text-sm">· {lot.silo}</span>
             </div>
-            <div className="lot-title">{lot.region} Spring Wheat</div>
+            <div className="lot-title">{lot.region} {t.springWheat}</div>
             <div className="lot-meta mt-8">
-              {[["Protein",lot.protein],["Moisture",lot.moisture],["Available",`${Math.round(lot.tonnes*(1-lot.fill))}t`],["Seller",lot.seller]].map(([k,v])=>(
+              {[[t.protein,lot.protein],[t.moisture,lot.moisture],[t.available,`${Math.round(lot.tonnes*(1-lot.fill))}t`],[t.seller,lot.seller]].map(([k,v])=>(
                 <span key={k} className="lot-meta-item">{k}: <strong>{v}</strong></span>
               ))}
             </div>
             <div className="mt-8">
               <div className="flex-between mb-4" style={{fontSize:11,color:"var(--ink-l)"}}>
-                <span>Lot fill</span><span>{Math.round(lot.fill*100)}% sold</span>
+                <span>{t.lotFill}</span><span>{Math.round(lot.fill*100)}{t.sold}</span>
               </div>
               <div className="prog-track"><div className="prog-fill" style={{width:`${lot.fill*100}%`,background:"var(--teal)"}} /></div>
             </div>
           </div>
           <div style={{textAlign:"right"}}>
             <div className="lot-price">${lot.price}</div>
-            <div className="lot-price-sub">per tonne</div>
-            <button className="btn btn-primary btn-sm mt-8" onClick={e=>{e.stopPropagation();setBuyModal(lot);}}>Buy Now</button>
+            <div className="lot-price-sub">{lang==="en"?"per tonne":lang==="ru"?"за тонну":"тоннасына"}</div>
+            <button className="btn btn-primary btn-sm mt-8" onClick={e=>{e.stopPropagation();setBuyModal(lot);}}>{t.buyNow}</button>
           </div>
         </div>
       ))}
 
       {buyModal && (
-        <Modal title="Purchase Grain Lot" sub={`${buyModal.silo} · Grade ${buyModal.grade}`}
+        <Modal title={t.purchaseLot} sub={`${buyModal.silo} · ${lang==="en"?"Grade":lang==="ru"?"Класс":"Сорт"} ${buyModal.grade}`}
           onClose={()=>{setBuyModal(null);setBuyTonnes("")}}
           footer={<>
-            <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setBuyModal(null);setBuyTonnes("")}}>Cancel</button>
+            <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setBuyModal(null);setBuyTonnes("")}}>{t.cancel}</button>
             <button className="btn btn-primary" style={{flex:1}}
               disabled={!buyTonnes||parseFloat(buyTonnes)<=0||parseFloat(buyTonnes)*buyModal.price*1000>wallet.usdc}
               onClick={handleBuy}>
-              Buy {buyTonnes||"—"} tonnes
+              {lang==="en"?"Buy":lang==="ru"?"Купить":"Сатып алу"} {buyTonnes||"—"} {lang==="en"?"tonnes":lang==="ru"?"тонн":"тонна"}
             </button>
           </>}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-            {[["Price",`$${buyModal.price}/tonne`],["Protein",buyModal.protein],["Moisture",buyModal.moisture],["Receipt",buyModal.id]].map(([k,v])=>(
+            {[[t.price,`$${buyModal.price}/tonne`],[t.protein,buyModal.protein],[t.moisture,buyModal.moisture],[t.receipt,buyModal.id]].map(([k,v])=>(
               <div key={k} style={{background:"var(--sand)",borderRadius:6,padding:"8px 10px"}}>
                 <div style={{fontSize:10,color:"var(--ink-l)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:2}}>{k}</div>
                 <div style={{fontFamily:"var(--mono)",fontSize:12,fontWeight:500}}>{v}</div>
@@ -814,15 +1197,15 @@ function MarketTab({ wallet, setWallet, wPrice, toast, log }: any) {
             ))}
           </div>
           <div className="field">
-            <label className="field-label">Quantity</label>
+            <label className="field-label">{t.quantity}</label>
             <div className="input-wrap">
               <input className="input round-l" type="number" placeholder={`Max ${Math.round(buyModal.tonnes*(1-buyModal.fill))}`}
                 value={buyTonnes} onChange={e=>setBuyTonnes(e.target.value)}/>
-              <div className="input-sfx">tonnes</div>
+              <div className="input-sfx">{lang==="en"?"tonnes":lang==="ru"?"тонн":"тонна"}</div>
             </div>
           </div>
           {buyTonnes&&parseFloat(buyTonnes)>0&&(
-            <div className="info-box">Cost: <strong>${fmt(parseFloat(buyTonnes)*buyModal.price*1000,0)}</strong> USDC · GRAIN received: <strong>{fmtK(parseFloat(buyTonnes)*1_000_000)}</strong> · Settlement: &lt;1 second</div>
+            <div className="info-box">{t.cost}: <strong>${fmt(parseFloat(buyTonnes)*buyModal.price*1000,0)}</strong> USDC · {t.grainReceived}: <strong>{fmtK(parseFloat(buyTonnes)*1_000_000)}</strong> · {t.settlement}: {t.lessThan1s}</div>
           )}
         </Modal>
       )}
@@ -832,6 +1215,7 @@ function MarketTab({ wallet, setWallet, wPrice, toast, log }: any) {
 
 // ─── LENDER TAB ───────────────────────────────────────────────────────────────
 function LenderTab({ wallet, setWallet, toast, log }: any) {
+  const { lang } = useLang(); const t = T[lang];
   const [depositModal, setDepositModal] = useState(false);
   const [depositAmt, setDepositAmt] = useState("");
   const [earned, setEarned] = useState({ v1:1842.50, v2:623.40 });
@@ -847,10 +1231,10 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
 
   function handleDeposit() {
     const a = parseFloat(depositAmt);
-    if (!a||a>wallet.usdc) { toast("Invalid amount","err"); return; }
+    if (!a||a>wallet.usdc) { toast(lang==="en"?"Invalid amount":lang==="ru"?"Неверная сумма":"Жарамсыз сома","err"); return; }
     setWallet((w: any) => ({ ...w, usdc: w.usdc - a }));
-    log({ c:"var(--teal)", t:`Deposited ${fmt(a,0)} USDC → GRAIN Senior Vault · 11.2% APY`, ts:nowStr() });
-    toast(`✓ ${fmt(a,0)} USDC deposited · yield starts now`);
+    log({ c:"var(--teal)", t:`${lang==="en"?"Deposited":lang==="ru"?"Внесено":"Салынды"} ${fmt(a,0)} USDC → GRAIN Senior Vault · 11.2% APY`, ts:nowStr() });
+    toast(`✓ ${fmt(a,0)} USDC ${lang==="en"?"deposited · yield starts now":lang==="ru"?"внесено · доходность начинается":"салынды · табыс басталды"}`);
     setDepositModal(false); setDepositAmt("");
   }
 
@@ -861,23 +1245,23 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
       <div className="g2 mb-20">
         <div className="vault-dark">
           <div className="flex-between mb-12">
-            <span style={{fontSize:12,color:"rgba(255,255,255,.5)"}}>Total deposited</span>
-            <span className="badge badge-live">EARNING</span>
+            <span style={{fontSize:12,color:"rgba(255,255,255,.5)"}}>{t.totalDeposited}</span>
+            <span className="badge badge-live">{t.earning}</span>
           </div>
           <div style={{fontFamily:"var(--mono)",fontSize:28,fontWeight:500,color:"white",marginBottom:3}}>${fmt(total,0)}</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginBottom:14}}>USDC across 2 active vaults</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginBottom:14}}>{t.usdcAcross}</div>
           <div className="divider" style={{borderColor:"rgba(255,255,255,.1)"}}/>
           <div className="vault-meta">
             <div className="vault-meta-item">
-              <div className="vm-label">Total earned</div>
+              <div className="vm-label">{t.totalEarned}</div>
               <div className={`vm-val ticker ${flash?"flash":""}`}>${fmt(earned.v1+earned.v2)}</div>
             </div>
             <div className="vault-meta-item">
-              <div className="vm-label">Blended APY</div>
+              <div className="vm-label">{t.blendedApy}</div>
               <div className="vm-val" style={{color:"#e8c85a"}}>10.8%</div>
             </div>
             <div className="vault-meta-item">
-              <div className="vm-label">Next payout</div>
+              <div className="vm-label">{t.nextPayout}</div>
               <div className="vm-val">~7h</div>
             </div>
           </div>
@@ -886,7 +1270,7 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
         <div>
           <div className="carry-meter mb-10">
             <div className="flex-between mb-4">
-              <span style={{fontSize:12,fontWeight:600,color:"var(--ink)"}}>GRAIN Senior Vault</span>
+              <span style={{fontSize:12,fontWeight:600,color:"var(--ink)"}}>{t.grainSeniorVault}</span>
               <span style={{fontFamily:"var(--mono)",fontSize:13,fontWeight:500,color:"var(--teal-d)"}}>11.2% APY</span>
             </div>
             <div className="apy-row">
@@ -896,24 +1280,24 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
                   strokeDasharray={`${11.2/20*138.2} 138.2`} strokeLinecap="round"/>
               </svg>
               <div>
-                <div style={{fontSize:13,color:"var(--ink-m)"}}>Senior tranche · first-loss protected</div>
+                <div style={{fontSize:13,color:"var(--ink-m)"}}>{t.seniorTranche}</div>
                 <div className={`stat-val green mt-4 ticker ${flash?"flash":""}`}>${fmt(earned.v1)}</div>
-                <div className="text-sm">earned so far · $25,000 deposited</div>
+                <div className="text-sm">{t.earnedSoFar}</div>
               </div>
             </div>
             <div className="mt-8">
-              <div className="flex-between text-sm mb-4"><span>Vault utilization</span><span>78%</span></div>
+              <div className="flex-between text-sm mb-4"><span>{t.vaultUtil}</span><span>78%</span></div>
               <div className="prog-track"><div className="prog-fill" style={{width:"78%",background:"var(--teal)"}}/></div>
             </div>
           </div>
 
           <div className="carry-meter">
             <div className="flex-between mb-4">
-              <span style={{fontSize:12,fontWeight:600,color:"var(--ink)"}}>sGRAIN Yield Vault</span>
+              <span style={{fontSize:12,fontWeight:600,color:"var(--ink)"}}>{t.sgrainYieldVault}</span>
               <span style={{fontFamily:"var(--mono)",fontSize:13,fontWeight:500,color:"var(--amber)"}}>9.4% APY</span>
             </div>
             <div className={`stat-val mt-4 ticker ${flash?"flash":""}`} style={{color:"var(--amber)"}}>${fmt(earned.v2)}</div>
-            <div className="text-sm mt-4">earned · $10,000 deposited</div>
+            <div className="text-sm mt-4">{lang==="en"?"earned · $10,000 deposited":lang==="ru"?"заработано · внесено $10 000":"табылды · $10 000 салынды"}</div>
           </div>
         </div>
       </div>
@@ -921,12 +1305,12 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
       <div className="g2">
         <div className="card">
           <div className="flex-between mb-12">
-            <div className="card-title" style={{margin:0}}>Your positions</div>
-            <button className="btn btn-primary btn-sm" onClick={() => setDepositModal(true)}>+ Deposit USDC</button>
+            <div className="card-title" style={{margin:0}}>{t.yourPositions}</div>
+            <button className="btn btn-primary btn-sm" onClick={() => setDepositModal(true)}>{t.depositUsdc}</button>
           </div>
           {[
-            {name:"GRAIN Senior Vault",sub:"Wheat Grade 1+2 · since Oct 2025",apy:"11.2%",dep:25000,earn:earned.v1,health:98},
-            {name:"sGRAIN Yield Vault",sub:"sGRAIN-backed · since Nov 2025",apy:"9.4%",dep:10000,earn:earned.v2,health:100},
+            {name:t.grainSeniorVault,sub:lang==="en"?"Wheat Grade 1+2 · since Oct 2025":lang==="ru"?"Пшеница кл. 1+2 · с окт. 2025":"Бидай 1+2 сорт · 2025 қазан",apy:"11.2%",dep:25000,earn:earned.v1,health:98},
+            {name:t.sgrainYieldVault,sub:lang==="en"?"sGRAIN-backed · since Nov 2025":lang==="ru"?"На основе sGRAIN · с ноя. 2025":"sGRAIN негізінде · 2025 қараша",apy:"9.4%",dep:10000,earn:earned.v2,health:100},
           ].map(p=>(
             <div key={p.name} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 0",borderBottom:"1px solid var(--border)"}}>
               <div style={{width:36,height:36,borderRadius:8,background:"var(--teal-l)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🌾</div>
@@ -934,7 +1318,7 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
                 <div style={{fontSize:13,fontWeight:600,color:"var(--ink)"}}>{p.name}</div>
                 <div className="text-sm mt-4">{p.sub}</div>
                 <div className="flex-gap mt-8">
-                  <span className="text-sm">Health:</span>
+                  <span className="text-sm">{t.health}:</span>
                   <div className="prog-track" style={{width:60,height:4}}><div className="prog-fill" style={{width:`${p.health}%`,background:"var(--teal)"}}/></div>
                   <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--teal-d)"}}>{p.health}%</span>
                 </div>
@@ -942,47 +1326,47 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
               <div style={{textAlign:"right"}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"var(--teal-d)"}}>{p.apy}</div>
                 <div className={`td-green ticker ${flash?"flash":""}`}>${fmt(p.earn)}</div>
-                <div className="text-sm">${fmt(p.dep,0)} dep.</div>
+                <div className="text-sm">${fmt(p.dep,0)} {t.dep}</div>
               </div>
             </div>
           ))}
         </div>
 
         <div className="card">
-          <div className="card-title">How lender yield works</div>
+          <div className="card-title">{t.howYieldWorks}</div>
           {[
-            [1,"Deposit USDC into the vault","var(--teal)"],
-            [2,"Farmers borrow USDC against silo'd GRAIN tokens (60% LTV)","var(--teal)"],
-            [3,"Farmers pay 11.2% APR on their loan","var(--amber)"],
-            [4,"Interest flows to you in real-time as earned yield","var(--teal)"],
-            [5,"Default protection: GRAIN tokens auto-liquidated via Pyth oracle","var(--ink-l)"],
-          ].map(([n,t,c])=>(
+            [1,t.ly1,"var(--teal)"],
+            [2,t.ly2,"var(--teal)"],
+            [3,t.ly3,"var(--amber)"],
+            [4,t.ly4,"var(--teal)"],
+            [5,t.ly5,"var(--ink-l)"],
+          ].map(([n,txt,c])=>(
             <div key={n as number} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
               <div style={{width:22,height:22,borderRadius:"50%",background:c as string,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,color:"white",flexShrink:0}}>{n}</div>
-              <div style={{fontSize:12,color:"var(--ink-m)",lineHeight:1.5}}>{t as string}</div>
+              <div style={{fontSize:12,color:"var(--ink-m)",lineHeight:1.5}}>{txt as string}</div>
             </div>
           ))}
-          <div className="info-box mt-8">Your USDC is secured by <strong>physically segregated wheat</strong> in licensed Kazakh silos. Grain cannot leave without burning the GRAIN tokens.</div>
+          <div className="info-box mt-8">{t.securedByWheat} <strong>{t.physicallySegregated}</strong> {t.inLicensedSilos}</div>
         </div>
       </div>
 
       {depositModal && (
-        <Modal title="Deposit USDC" sub="Earn 11.2% APY · secured by silo'd wheat"
+        <Modal title={t.depositModal} sub={t.earnSecured}
           onClose={() => setDepositModal(false)}
           footer={<>
-            <button className="btn btn-outline" style={{flex:1}} onClick={() => setDepositModal(false)}>Cancel</button>
-            <button className="btn btn-primary" style={{flex:1}} disabled={!depositAmt||parseFloat(depositAmt)<=0||parseFloat(depositAmt)>wallet.usdc} onClick={handleDeposit}>Deposit & Earn</button>
+            <button className="btn btn-outline" style={{flex:1}} onClick={() => setDepositModal(false)}>{t.cancel}</button>
+            <button className="btn btn-primary" style={{flex:1}} disabled={!depositAmt||parseFloat(depositAmt)<=0||parseFloat(depositAmt)>wallet.usdc} onClick={handleDeposit}>{t.depositEarn}</button>
           </>}>
           <div className="field">
-            <label className="field-label">Deposit amount</label>
+            <label className="field-label">{t.depositAmt}</label>
             <div className="input-wrap">
               <input className="input round-l" type="number" placeholder="e.g. 5000" value={depositAmt} onChange={e=>setDepositAmt(e.target.value)}/>
               <div className="input-sfx">USDC</div>
             </div>
-            <div className="text-sm mt-8">Available: {fmt(wallet.usdc,0)} USDC</div>
+            <div className="text-sm mt-8">{lang==="en"?"Available":lang==="ru"?"Доступно":"Қолжетімді"}: {fmt(wallet.usdc,0)} USDC</div>
           </div>
           {depositAmt&&parseFloat(depositAmt)>0&&(
-            <div className="info-box">Annual yield: <strong>${fmt(parseFloat(depositAmt)*.112,0)}</strong> · Monthly: <strong>${fmt(parseFloat(depositAmt)*.112/12,0)}</strong></div>
+            <div className="info-box">{t.annualYield}: <strong>${fmt(parseFloat(depositAmt)*.112,0)}</strong> · {t.monthly}: <strong>${fmt(parseFloat(depositAmt)*.112/12,0)}</strong></div>
           )}
         </Modal>
       )}
@@ -992,6 +1376,7 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
 
 // ─── CARRY TAB ────────────────────────────────────────────────────────────────
 function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
+  const { lang } = useLang(); const t = T[lang];
   const [carrySpread, setCarrySpread] = useState(1480); // bps
   const [enterModal, setEnterModal] = useState(false);
   const [enterAmt, setEnterAmt] = useState("");
@@ -1001,7 +1386,7 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
 
   // Simulate live carry spread + cGRAIN rate ticking
   useEffect(() => {
-    const t = setInterval(() => {
+    const ti = setInterval(() => {
       setCarrySpread(s => {
         const delta = (Math.random() - 0.45) * 12;
         return Math.max(800, Math.min(2200, Math.round(s + delta)));
@@ -1027,11 +1412,11 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
 
   function handleEnter() {
     const kg = parseFloat(enterAmt) * 1_000_000;
-    if (!enterAmt||kg>wallet.grain) { toast("Insufficient GRAIN","err"); return; }
+    if (!enterAmt||kg>wallet.grain) { toast(lang==="en"?"Insufficient GRAIN":lang==="ru"?"Недостаточно GRAIN":"GRAIN жеткіліксіз","err"); return; }
     const cgrain = Math.floor(kg * 1e9 / cgrainRate);
     setWallet((w: any) => ({ ...w, grain: w.grain - kg, cgrain: (w.cgrain||0) + cgrain }));
-    log({ c:"var(--gold)", t:`Entered carry position: ${fmtK(kg/1_000_000)} GRAIN → cGRAIN · spread=${(carrySpread/100).toFixed(1)}% · APY=${annualizedApy}%`, ts:nowStr() });
-    toast(`✓ Carry position opened · ${annualizedApy}% APY`);
+    log({ c:"var(--gold)", t:`${lang==="en"?"Entered carry":lang==="ru"?"Открыта кэрри-позиция":"Кэрри позиция ашылды"}: ${fmtK(kg/1_000_000)} GRAIN → cGRAIN · spread=${(carrySpread/100).toFixed(1)}% · APY=${annualizedApy}%`, ts:nowStr() });
+    toast(`✓ ${lang==="en"?"Carry position opened":lang==="ru"?"Кэрри-позиция открыта":"Кэрри позициясы ашылды"} · ${annualizedApy}% APY`);
     setEnterModal(false); setEnterAmt("");
   }
 
@@ -1040,8 +1425,8 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
     const grainBack = Math.floor(wallet.cgrain * cgrainRate / 1e9);
     const yield_ = grainBack - wallet.cgrain;
     setWallet((w: any) => ({ ...w, cgrain: 0, grain: w.grain + grainBack }));
-    log({ c:"var(--gold)", t:`Exited carry: ${fmtK(wallet.cgrain/1_000_000)} cGRAIN → ${fmtK(grainBack/1_000_000)} GRAIN (yield: +${fmtK(yield_/1_000_000)} GRAIN)`, ts:nowStr() });
-    toast(`✓ Carry exited · ${fmtK(grainBack/1_000_000)} GRAIN returned`);
+    log({ c:"var(--gold)", t:`${lang==="en"?"Exited carry":lang==="ru"?"Кэрри закрыт":"Кэрриден шықты"}: ${fmtK(wallet.cgrain/1_000_000)} cGRAIN → ${fmtK(grainBack/1_000_000)} GRAIN (+${fmtK(yield_/1_000_000)} GRAIN)`, ts:nowStr() });
+    toast(`✓ ${lang==="en"?"Carry exited":lang==="ru"?"Кэрри закрыт":"Кэрри жабылды"} · ${fmtK(grainBack/1_000_000)} GRAIN`);
   }
 
   const posValue = wallet.cgrain ? wallet.cgrain/1_000_000 * spotPrice / 1000 : 0;
@@ -1050,22 +1435,22 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
     <div className="page">
       <div className="stats c4 mb-20">
         <div className="stat-card">
-          <div className="stat-label">Carry spread (Sep→Mar)</div>
+          <div className="stat-label">{lang==="en"?"Carry spread (Sep→Mar)":lang==="ru"?"Кэрри спред (сен.→мар.)":"Кэрри спреді (қыр.→нау.)"}</div>
           <div className={`stat-val ${isContango?"gold":"red"}`}>{isContango?"+":(carrySpread<0?"-":"")}{(Math.abs(carrySpread)/100).toFixed(1)}%</div>
           <div className="stat-sub">{isContango?"CONTANGO ✓":"BACKWARDATION"}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Carry APY (annualized)</div>
+          <div className="stat-label">{t.annualizedCarryApy}</div>
           <div className="stat-val gold">{annualizedApy}%</div>
-          <div className="stat-sub">vs 3.2% base sGRAIN</div>
+          <div className="stat-sub">{lang==="en"?"vs 3.2% base sGRAIN":lang==="ru"?"против 3.2% базового sGRAIN":"3.2% базалық sGRAIN-ге қарсы"}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">cGRAIN Exchange Rate</div>
+          <div className="stat-label">{t.cgrainRate}</div>
           <div className={`stat-val ticker-gold ticker ${rateFlash?"flash":""}`} style={{color:"var(--gold)",fontFamily:"var(--mono)",fontSize:16}}>{cgrainRate.toLocaleString()}</div>
           <div className="stat-sub">×10<sup>-9</sup> GRAIN/cGRAIN · ticking ↑</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Your cGRAIN</div>
+          <div className="stat-label">{t.yourCgrain}</div>
           <div className="stat-val gold">{fmtK((wallet.cgrain||0)/1_000_000)}</div>
           <div className="stat-sub">≈ ${fmt(posValue,0)} value</div>
         </div>
@@ -1077,9 +1462,9 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
             <div className={`carry-spread-val ${isContango?"contango-color":"backwardation-color"}`}>
               {isContango?"+":(carrySpread<0?"-":"")}{(Math.abs(carrySpread)/100).toFixed(2)}%
             </div>
-            <span style={{fontSize:13,color:"rgba(255,255,255,.5)",marginBottom:6}}>6-month carry</span>
+            <span style={{fontSize:13,color:"rgba(255,255,255,.5)",marginBottom:6}}>{t.carrySpreadLabel}</span>
           </div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:16}}>CME ZW Sep→Mar contango spread · Pyth oracle</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:16}}>{t.cmePyth}</div>
 
           <div className="spread-bar-track">
             <div className={`spread-bar-fill ${isContango?"contango":"backwardation"}`}
@@ -1088,30 +1473,30 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:14}}>
             <div style={{background:"rgba(255,255,255,.06)",borderRadius:6,padding:"10px 12px"}}>
-              <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>ZW1! Sep spot</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{t.zwSepSpot}</div>
               <div style={{fontFamily:"var(--mono)",fontSize:14,color:"white"}}>${fmt(spotPrice)}/tonne</div>
             </div>
             <div style={{background:"rgba(255,255,255,.06)",borderRadius:6,padding:"10px 12px"}}>
-              <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>ZW March futures</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{t.zwMarchFutures}</div>
               <div style={{fontFamily:"var(--mono)",fontSize:14,color:"#e8c85a"}}>${fmt(marchPrice)}/tonne</div>
             </div>
           </div>
 
           <div style={{marginTop:14,padding:"10px 12px",background:"rgba(255,255,255,.06)",borderRadius:6}}>
-            <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>Annualized carry APY</div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{t.annualizedCarryApy}</div>
             <div style={{fontFamily:"var(--mono)",fontSize:18,color:"#e8c85a",fontWeight:500}}>{annualizedApy}%</div>
           </div>
         </div>
 
         <div>
           <div className="card mb-12">
-            <div className="card-title">How carry yield works</div>
-            <div className="gold-box">KZ wheat is harvested Aug–Sep at the seasonal price low. CME March futures trade at a premium (contango). By holding tokenized grain through winter, you capture the spread as yield — on top of storage fees and lending interest.</div>
+            <div className="card-title">{t.howCarryWorks}</div>
+            <div className="gold-box">{t.carryExplain}</div>
             {[
-              ["Physical GRAIN held in silo","Already happening — no extra cost"],
-              ["cGRAIN exchange rate accrues spread","Updates every block via oracle"],
-              ["Exit in March","More GRAIN + USDC carry yield returned"],
-              ["Avg carry (2005–2024)","18.4% Sep→Mar, positive 80% of years"],
+              [t.physicalGrain, t.alreadyHappening],
+              [t.cgrainAccrues, t.updatesEveryBlock],
+              [t.exitInMarch, t.moreGrainReturned],
+              [t.avgCarry, t.avgCarryVal],
             ].map(([k,v])=>(
               <div key={k} className="flex-between" style={{fontSize:12,padding:"6px 0",borderTop:"1px solid var(--border)"}}>
                 <span style={{color:"var(--ink-l)"}}>{k}</span>
@@ -1121,7 +1506,7 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
           </div>
 
           <div className="card">
-            <div className="card-title">Historical Sep→Mar spread</div>
+            <div className="card-title">{t.historicalSpreadTitle}</div>
             <div style={{display:"flex",gap:2,alignItems:"flex-end",height:80}}>
               {HISTORICAL_CARRY.map(d => {
                 const h = Math.min(70, Math.max(4, Math.abs(d.pct) * 1.1));
@@ -1146,46 +1531,46 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
       <div className="g2">
         <div className="card">
           <div className="flex-between mb-12">
-            <div className="card-title" style={{margin:0}}>Enter Carry Position</div>
+            <div className="card-title" style={{margin:0}}>{t.enterCarryPos}</div>
             <span className="badge badge-gold">{annualizedApy}% APY</span>
           </div>
-          <div className="gold-box">Deposit GRAIN → receive cGRAIN. Exchange rate accrues at carry APY. Exit any time to receive more GRAIN than deposited.</div>
+          <div className="gold-box">{t.depositGrain}</div>
           <div className="field">
-            <label className="field-label">GRAIN to lock</label>
+            <label className="field-label">{t.grainToLock}</label>
             <div className="input-wrap">
               <input className="input round-l" type="number" placeholder="e.g. 500000" value={enterAmt} onChange={e=>setEnterAmt(e.target.value)}/>
               <div className="input-sfx">kg</div>
             </div>
-            <div className="text-sm mt-4">Available: {fmtK(wallet.grain/1_000_000)} GRAIN ({fmtK(wallet.grain/1_000_000)} kg)</div>
+            <div className="text-sm mt-4">{t.available2}: {fmtK(wallet.grain/1_000_000)} GRAIN ({fmtK(wallet.grain/1_000_000)} kg)</div>
           </div>
           {enterAmt&&parseFloat(enterAmt)>0&&(
-            <div className="gold-box">At {annualizedApy}% APY, in 6 months: <strong>+{fmt(parseFloat(enterAmt)*parseFloat(annualizedApy)/100/2,0)} kg GRAIN yield</strong> on your position.</div>
+            <div className="gold-box">{t.atApy} {annualizedApy}% {t.inSixMonths} <strong>+{fmt(parseFloat(enterAmt)*parseFloat(annualizedApy)/100/2,0)} {t.kgGrainYield}</strong> {t.onYourPos}</div>
           )}
           <button className="btn btn-gold btn-full mt-4" disabled={!wallet.grain||wallet.grain<100_000||!enterAmt||parseFloat(enterAmt)*1_000_000>wallet.grain} onClick={()=>{ if(enterAmt&&parseFloat(enterAmt)>0) handleEnter(); else setEnterModal(true); }}>
-            Enter Carry Position
+            {t.enterCarryBtn}
           </button>
         </div>
 
         <div className="card">
-          <div className="card-title">Your Active Carry Position</div>
+          <div className="card-title">{t.yourActiveCarry}</div>
           {wallet.cgrain > 0 ? (
             <>
               <div className="receipt-card mt-4" style={{background:"#1a1208"}}>
-                <div className="receipt-serial">CARRY POSITION · CGRAIN VAULT</div>
+                <div className="receipt-serial">{t.carryPosLabel}</div>
                 <div className="receipt-amount" style={{color:"#e8c85a"}}>{fmtK((wallet.cgrain||0)/1_000_000)} cGRAIN</div>
-                <div className="receipt-sub">Wheat carry position — earning</div>
-                <div className="receipt-row"><span className="receipt-key">Exchange rate</span><span className="receipt-val">{cgrainRate.toLocaleString()}</span></div>
-                <div className="receipt-row"><span className="receipt-key">Carry APY</span><span className="receipt-val" style={{color:"#e8c85a"}}>{annualizedApy}%</span></div>
-                <div className="receipt-row"><span className="receipt-key">Yield accrued</span><span className="receipt-val" style={{color:"#5ecba1"}}>+{cgrainEarned.toFixed(4)} GRAIN</span></div>
-                <div className="receipt-row"><span className="receipt-key">Status</span><span className="receipt-val" style={{color:"#e8c85a"}}>● Carry accruing</span></div>
+                <div className="receipt-sub">{t.wheatCarry}</div>
+                <div className="receipt-row"><span className="receipt-key">{t.exchangeRate}</span><span className="receipt-val">{cgrainRate.toLocaleString()}</span></div>
+                <div className="receipt-row"><span className="receipt-key">{t.carryApy}</span><span className="receipt-val" style={{color:"#e8c85a"}}>{annualizedApy}%</span></div>
+                <div className="receipt-row"><span className="receipt-key">{t.yieldAccrued}</span><span className="receipt-val" style={{color:"#5ecba1"}}>+{cgrainEarned.toFixed(4)} GRAIN</span></div>
+                <div className="receipt-row"><span className="receipt-key">{t.status}</span><span className="receipt-val" style={{color:"#e8c85a"}}>{t.carryAccruing}</span></div>
               </div>
-              <button className="btn btn-outline btn-full mt-12" onClick={handleExit}>Exit Carry Position</button>
+              <button className="btn btn-outline btn-full mt-12" onClick={handleExit}>{t.exitCarry}</button>
             </>
           ) : (
             <div style={{textAlign:"center",padding:"32px 0",color:"var(--ink-l)"}}>
               <div style={{fontSize:32,marginBottom:8}}>📈</div>
-              <div style={{fontSize:13,fontWeight:600,color:"var(--ink)",marginBottom:4}}>No active carry position</div>
-              <div style={{fontSize:12}}>Enter a position to start earning wheat carry yield</div>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--ink)",marginBottom:4}}>{t.noActiveCarry}</div>
+              <div style={{fontSize:12}}>{t.enterToEarn}</div>
             </div>
           )}
         </div>
@@ -1196,11 +1581,12 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
 
 // ─── JUDGE TAB ────────────────────────────────────────────────────────────────
 function JudgeTab({ toast }: any) {
+  const { lang } = useLang(); const t = T[lang];
   const [copied, setCopied] = useState("");
 
   function copy(v: string, label: string) {
     navigator.clipboard?.writeText(v).catch(()=>{});
-    setCopied(label); toast(`✓ Copied ${label}`);
+    setCopied(label); toast(`✓ ${t.copy} ${label}`);
     setTimeout(()=>setCopied(""), 1500);
   }
 
@@ -1214,10 +1600,8 @@ function JudgeTab({ toast }: any) {
   return (
     <div className="page">
       <div className="judge-hero">
-        <div className="judge-hero-title">GrainChain KZ<br/>Judge Testing Guide</div>
-        <div className="judge-hero-sub">
-          Tokenizing Kazakh grain warehouse receipts on Solana. Built for the National Solana Hackathon by Decentrathon 2026. Everything is live and verifiable on Solana testnet.
-        </div>
+        <div className="judge-hero-title">{t.judgeTitle.split("\n").map((line,i)=><span key={i}>{line}{i===0&&<br/>}</span>)}</div>
+        <div className="judge-hero-sub">{t.judgeSub}</div>
         <div>
           {[["Legal ✓","jt-teal"],["KZ Law on Grain 2022","jt-gold"],["Qoldau.kz Registry","jt-gold"],["Pyth Oracle","jt-sky"],["Anchor 0.30.1","jt-sky"],["192 Licensed Silos","jt-teal"],["Apr 7 Deadline","jt-gold"]].map(([l,c])=>(
             <span key={l} className={`judge-tag ${c}`}>{l}</span>
@@ -1227,16 +1611,16 @@ function JudgeTab({ toast }: any) {
 
       <div className="g2 mb-20">
         <div className="card">
-          <div className="card-title">On-chain addresses (testnet)</div>
-          <p className="text-sm mb-12">Deploy first with <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>bash scripts/deploy.sh</code> then run <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>yarn init</code> to populate.</p>
+          <div className="card-title">{t.onChainAddresses}</div>
+          <p className="text-sm mb-12">{t.deployFirst} <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>bash scripts/deploy.sh</code> {t.thenRun} <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>yarn init</code> {t.toPopulate}</p>
           {addresses.map(a => (
             <div key={a.label} style={{padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
               <div className="text-sm mb-4">{a.label}</div>
               <div className="flex-gap">
                 <code style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--ink-m)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.val}</code>
-                {a.link && <a href={a.link} target="_blank" rel="noopener" className="explorer-link">Explorer ↗</a>}
+                {a.link && <a href={a.link} target="_blank" rel="noopener" className="explorer-link">{t.explorer}</a>}
                 <button className="btn btn-outline btn-sm" onClick={()=>copy(a.val, a.label)} style={{padding:"3px 8px",fontSize:10}}>
-                  {copied===a.label?"✓":"Copy"}
+                  {copied===a.label?"✓":t.copy}
                 </button>
               </div>
             </div>
@@ -1244,8 +1628,8 @@ function JudgeTab({ toast }: any) {
         </div>
 
         <div className="card">
-          <div className="card-title">Judge wallets (pre-funded)</div>
-          <p className="text-sm mb-12">Run <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>yarn wallets</code> to create 5 funded wallets. Each has 1 SOL + 10,000 USDC + 1,000 GRAIN.</p>
+          <div className="card-title">{t.judgeWallets}</div>
+          <p className="text-sm mb-12">{t.runWallets} <code style={{fontFamily:"var(--mono)",background:"var(--sand)",padding:"1px 5px",borderRadius:3}}>yarn wallets</code> {t.toCreate}</p>
           {JUDGE_WALLETS.map(w => (
             <div key={w.n} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:w.color,display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontSize:12,fontWeight:600,flexShrink:0}}>J{w.n}</div>
@@ -1253,46 +1637,39 @@ function JudgeTab({ toast }: any) {
                 <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--ink-m)"}}>{w.pub}</div>
                 <div className="text-sm mt-4">1 SOL · {w.usdc.toLocaleString()} USDC · {w.grain.toLocaleString()} GRAIN</div>
               </div>
-              <button className="btn btn-outline btn-sm" onClick={()=>copy(w.pub,"wallet")} style={{padding:"3px 8px",fontSize:10}}>Copy</button>
+              <button className="btn btn-outline btn-sm" onClick={()=>copy(w.pub,"wallet")} style={{padding:"3px 8px",fontSize:10}}>{t.copy}</button>
             </div>
           ))}
-          <div className="info-box mt-12">Import any wallet into Phantom (testnet mode) by going to Settings → Add Account → Import Private Key. Keys are in <code style={{fontFamily:"var(--mono)",fontSize:10}}>judge-wallets-private.json</code>.</div>
+          <div className="info-box mt-12">{t.importPhantom} <code style={{fontFamily:"var(--mono)",fontSize:10}}>judge-wallets-private.json</code>.</div>
         </div>
       </div>
 
       <div className="card mb-16">
-        <div className="card-title">Testing walkthrough — 9 steps</div>
-        {[
-          { n:1, c:"var(--teal)",   h:"Oracle mints grain receipt", d:"Oracle signs Qoldau receipt → GrainReceipt PDA created on-chain. Keyed by serial (e.g. KST-2025-00847). Check the PDA on Explorer — it shows grade, protein, moisture, harvest date." },
-          { n:2, c:"var(--teal)",   h:"Farmer fractionalizes → GRAIN tokens", d:"GrainReceipt → GRAIN SPL tokens (1 token = 1 kg). Mint from the protocol PDA. Check your GRAIN token account on Explorer." },
-          { n:3, c:"var(--sky)",    h:"Lender deposits USDC", d:"USDC enters the LendingVault PDA. LenderPosition PDA created tracking your deposit + earned interest (ticks every block)." },
-          { n:4, c:"var(--gold)",   h:"Farmer borrows USDC (Pyth oracle)", d:"GRAIN tokens locked in CollateralEscrow PDA. USDC released at 60% LTV. If testnet Pyth is stale, retry in 30s — feed updates every ~30 seconds." },
-          { n:5, c:"var(--teal)",   h:"Deposit GRAIN into sGRAIN vault", d:"GRAIN transferred to GrainReserve PDA. sGRAIN minted at current exchange rate. Exchange rate ONLY increases — check it twice, 60s apart." },
-          { n:6, c:"var(--gold)",   h:"Enter carry position → cGRAIN", d:"GRAIN locked in CarryGrainReserve PDA. cGRAIN minted. cGRAIN rate accrues faster than sGRAIN (based on live CME contango spread from carry oracle)." },
-          { n:7, c:"var(--teal)",   h:"Run yield crank", d:"yarn crank --interval 10 keeps sGRAIN and cGRAIN rates ticking every 10s. Permissionless — any keypair can call it. Shows proof of autonomous yield." },
-          { n:8, c:"var(--amber)",  h:"Repay loan + exit positions", d:"Repay USDC + interest → GRAIN collateral unlocked. Withdraw sGRAIN → receive more GRAIN than deposited (the delta = yield). Exit carry → same." },
-          { n:9, c:"var(--teal)",   h:"Claim CHAIN governance rewards", d:"Pro-rata CHAIN tokens distributed based on sGRAIN balance over time. Synthetix-style reward_per_token accumulator. 10M CHAIN over 2 years." },
-        ].map(s=>(
-          <div key={s.n} className="judge-step">
-            <div className="step-num" style={{background:s.c,minWidth:28}}>{s.n}</div>
-            <div className="step-body">
-              <h4>{s.h}</h4>
-              <p>{s.d}</p>
+        <div className="card-title">{t.testingWalkthrough}</div>
+        {t.steps.map((s,i) => {
+          const colors = ["var(--teal)","var(--teal)","var(--sky)","var(--gold)","var(--teal)","var(--gold)","var(--teal)","var(--amber)","var(--teal)"];
+          return (
+            <div key={i} className="judge-step">
+              <div className="step-num" style={{background:colors[i],minWidth:28}}>{i+1}</div>
+              <div className="step-body">
+                <h4>{s.h}</h4>
+                <p>{s.d}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="g2">
         <div className="card">
-          <div className="card-title">Quick CLI checks</div>
+          <div className="card-title">{t.quickCli}</div>
           {[
-            ["Check sGRAIN rate (should be >1e9)", "solana account <sgrain_vault> --url testnet"],
-            ["Check cGRAIN rate (higher than sGRAIN)", "solana account <carry_vault> --url testnet"],
-            ["Verify grain locked in silo", "spl-token balance <grain_mint> --owner <silo_pda>"],
-            ["Run full demo script", "npx ts-node scripts/demo-interactions.ts"],
-            ["Live yield crank", "yarn crank --interval 10"],
-            ["Carry oracle (posts spread)", "npx ts-node scripts/carry-oracle.ts --once"],
+            [t.checkSgrain, "solana account <sgrain_vault> --url testnet"],
+            [t.checkCgrain, "solana account <carry_vault> --url testnet"],
+            [t.verifyGrain, "spl-token balance <grain_mint> --owner <silo_pda>"],
+            [t.runDemo, "npx ts-node scripts/demo-interactions.ts"],
+            [t.liveYield, "yarn crank --interval 10"],
+            [t.carryOracle, "npx ts-node scripts/carry-oracle.ts --once"],
           ].map(([l,cmd])=>(
             <div key={l} style={{marginBottom:10}}>
               <div className="text-sm mb-4">{l}</div>
@@ -1303,21 +1680,14 @@ function JudgeTab({ toast }: any) {
         </div>
 
         <div className="card">
-          <div className="card-title">Legal basis (for pitch)</div>
-          {[
-            ["Civil Code Arts. 797–802","Grain receipts = non-equity securities"],
-            ["Law on Grain (2001)","192 licensed silos, Qoldau.kz registry"],
-            ["2022 Amendment ✅","Digital tokens legally replace paper receipts"],
-            ["Law on Digital Assets (2023)","Grain tokens = secured digital assets"],
-            ["AIFC","English common law, 0% VAT, Fintech Lab"],
-            ["Kostanay Pilot (Sep 2025)","Ministry of AI + AIFC blockchain program"],
-          ].map(([k,v])=>(
+          <div className="card-title">{t.legalBasis}</div>
+          {t.legal.map(([k,v])=>(
             <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid var(--border)",fontSize:12}}>
               <span style={{fontWeight:600,color:"var(--ink)"}}>{k}</span>
               <span style={{color:"var(--ink-l)",textAlign:"right",maxWidth:"55%"}}>{v}</span>
             </div>
           ))}
-          <div className="info-box mt-12">GrainChain KZ is the <strong>Solana-native implementation</strong> of what the KZ government is actively piloting in Kostanay. This is not a hypothetical.</div>
+          <div className="info-box mt-12">{t.legalNote} <strong>{t.solanaNative}</strong> {t.govtPiloting}</div>
         </div>
       </div>
     </div>
@@ -1327,6 +1697,8 @@ function JudgeTab({ toast }: any) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState("farmer");
+  const [lang, setLang] = useState<Lang>("en");
+  const t = T[lang];
   const [wallet, setWallet] = useState({ usdc:45000, grain:3_200_000_000, sgrain:1_850_000_000, cgrain:0, chain:420 });
   const [wPrice, setWPrice] = useState(182.4);
   const [wDelta, setWDelta] = useState(0.12);
@@ -1341,7 +1713,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const t = setInterval(() => {
+    const ti = setInterval(() => {
       setWPrice(p => {
         const d = (Math.random() - 0.47) * 0.18;
         const np = Math.max(155, Math.min(215, +(p+d).toFixed(2)));
@@ -1349,23 +1721,24 @@ export default function App() {
         return np;
       });
     }, 2600);
-    return () => clearInterval(t);
+    return () => clearInterval(ti);
   }, []);
 
   const toast = useCallback((msg: string, type="ok") => setToastMsg({ msg, type }), []);
   const log   = useCallback((a: any) => setActivities(p => [...p.slice(-19), a]), []);
 
   const TABS = [
-    { id:"farmer", label:"Farmer Dashboard", icon:"🌾" },
-    { id:"market", label:"P2P Grain Market", icon:"⚖️" },
-    { id:"lender", label:"Lender Vault",     icon:"💰" },
-    { id:"carry",  label:"Carry Vault",      icon:"📈", badge:"NEW" },
-    { id:"judge",  label:"Judge Guide",      icon:"🎓" },
+    { id:"farmer", label:t.farmerDash, icon:"🌾" },
+    { id:"market", label:t.p2pMarket,  icon:"⚖️" },
+    { id:"lender", label:t.lenderVault,icon:"💰" },
+    { id:"carry",  label:t.carryVault, icon:"📈", badge:"NEW" },
+    { id:"judge",  label:t.judgeGuide, icon:"🎓" },
   ];
 
   const props = { wallet, setWallet, wPrice, toast, log };
 
   return (
+    <LangContext.Provider value={{ lang, setLang }}>
     <div className="app-shell">
       <div className="topbar">
         <div className="topbar-brand">
@@ -1381,21 +1754,28 @@ export default function App() {
             <span className={`price-delta ${wDelta>=0?"up":"dn"}`}>{wDelta>=0?"+":""}{wDelta}</span>
           </div>
           <div className="price-chip">
-            <span className="price-label">Network</span>
-            <span className="price-value">Devnet</span>
+            <span className="price-label">{t.network}</span>
+            <span className="price-value">Testnet</span>
           </div>
         </div>
         <div className="topbar-right">
+          <div className="lang-switcher">
+            {(["en","ru","kz"] as Lang[]).map(l => (
+              <button key={l} className={`lang-btn ${lang===l?"active":""}`} onClick={() => setLang(l)}>
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <div className="wallet-pill"><div className="w-dot"/>{fmt(wallet.usdc,0)} USDC</div>
           <div className="wallet-pill"><div className="w-dot"/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
         </div>
       </div>
 
       <div className="nav">
-        {TABS.map(t => (
-          <button key={t.id} className={`nav-item ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}>
-            <span>{t.icon}</span>{t.label}
-            {t.badge && <span className="nav-badge">{t.badge}</span>}
+        {TABS.map(tb => (
+          <button key={tb.id} className={`nav-item ${tab===tb.id?"active":""}`} onClick={()=>setTab(tb.id)}>
+            <span>{tb.icon}</span>{tb.label}
+            {tb.badge && <span className="nav-badge">{tb.badge}</span>}
           </button>
         ))}
       </div>
@@ -1411,7 +1791,7 @@ export default function App() {
       {activities.length > 0 && (
         <div className="activity-bar">
           <div className="activity-inner">
-            <span className="act-label">Activity</span>
+            <span className="act-label">{t.activity}</span>
             {activities.slice(-1).map((a,i) => (
               <div key={i} style={{display:"flex",alignItems:"center",gap:8,flex:1,overflow:"hidden"}}>
                 <div className="act-dot" style={{background:a.c}}/>
@@ -1425,5 +1805,6 @@ export default function App() {
 
       {toastMsg && <Toast msg={toastMsg.msg} type={toastMsg.type} onDone={()=>setToastMsg(null)}/>}
     </div>
+    </LangContext.Provider>
   );
 }
