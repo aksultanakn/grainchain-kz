@@ -1337,7 +1337,7 @@ export default function App() {
     const s = document.createElement("style");
     s.textContent = GLOBAL_CSS;
     document.head.appendChild(s);
-    return () => document.head.removeChild(s);
+    return () => { document.head.removeChild(s); };
   }, []);
 
   useEffect(() => {
