@@ -1,16 +1,15 @@
-import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
 import {
-  PROGRAM_ID, fetchWalletBalances, fetchSgrainRate,
-  fetchCarryVaultState, fetchLoanPosition, explorerTx,
+  PROGRAM_ID, fetchWalletBalances, explorerTx,
+  GRAIN_MINT, SGRAIN_MINT, CGRAIN_MINT, USDC_MINT,
 } from "./chain";
 import {
   txDepositUsdc, txBorrow, txRepay,
   txDepositSgrain, txWithdrawSgrain,
-  txEnterCarry, txExitCarry, txClaimRewards,
+  txEnterCarry, txExitCarry,
 } from "./transactions";
 
 // ─── LANGUAGE TYPES & CONTEXT ─────────────────────────────────────────────────
@@ -1619,7 +1618,153 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
   );
 }
 
-// ─── JUDGE TAB ────────────────────────────────────────────────────────────────
+// ─── ON-CHAIN FEED ────────────────────────────────────────────────────────────
+// Fetches real transaction signatures from Solana devnet RPC — no packages needed
+function OnChainFeed() {
+  const [txs, setTxs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+
+  async function fetchTxs() {
+    try {
+      // Fetch recent signatures for our program + all 4 mints
+      const accounts = [
+        ADDRESSES.program.val,
+        ADDRESSES.grain.val,
+        ADDRESSES.sgrain.val,
+        ADDRESSES.cgrain.val,
+        ADDRESSES.usdc.val,
+      ];
+
+      const results = await Promise.all(
+        accounts.map(addr =>
+          fetch(CLUSTER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0", id: 1,
+              method: "getSignaturesForAddress",
+              params: [addr, { limit: 5, commitment: "confirmed" }],
+            }),
+          }).then(r => r.json()).then(d => (d.result || []).map((tx: any) => ({ ...tx, account: addr })))
+        )
+      );
+
+      // Flatten, deduplicate by signature, sort by blockTime desc
+      const all = results.flat();
+      const seen = new Set<string>();
+      const deduped = all.filter(tx => {
+        if (seen.has(tx.signature)) return false;
+        seen.add(tx.signature);
+        return true;
+      });
+      deduped.sort((a, b) => (b.blockTime || 0) - (a.blockTime || 0));
+      setTxs(deduped.slice(0, 12));
+      setLastRefresh(new Date());
+    } catch (e) {
+      console.error("Feed fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchTxs();
+    const interval = setInterval(fetchTxs, 15_000); // refresh every 15s
+    return () => clearInterval(interval);
+  }, []);
+
+  function shortSig(sig: string) {
+    return sig.slice(0, 8) + "…" + sig.slice(-6);
+  }
+
+  function timeAgo(ts: number) {
+    const secs = Math.floor(Date.now() / 1000) - ts;
+    if (secs < 60) return `${secs}s ago`;
+    if (secs < 3600) return `${Math.floor(secs/60)}m ago`;
+    return `${Math.floor(secs/3600)}h ago`;
+  }
+
+  function accountLabel(addr: string) {
+    const found = Object.entries(ADDRESSES).find(([,v]) => v.val === addr);
+    return found ? found[1].label : addr.slice(0,6)+"…";
+  }
+
+  return (
+    <div className="card mb-20">
+      <div className="flex-between mb-12">
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div className="card-title" style={{margin:0}}>Live On-Chain Activity</div>
+          <span className="badge badge-live">● DEVNET</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {lastRefresh && (
+            <span style={{fontSize:10,color:"var(--ink-l)",fontFamily:"var(--mono)"}}>
+              Updated {lastRefresh.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={() => { setLoading(true); fetchTxs(); }}
+            style={{padding:"3px 10px",borderRadius:4,fontSize:11,border:"1.5px solid var(--border-m)",background:"transparent",cursor:"pointer",color:"var(--ink-l)"}}
+          >↻ Refresh</button>
+        </div>
+      </div>
+
+      {loading && txs.length === 0 ? (
+        <div style={{textAlign:"center",padding:"24px 0",color:"var(--ink-l)",fontSize:13}}>
+          Fetching transactions from Solana devnet…
+        </div>
+      ) : txs.length === 0 ? (
+        <div style={{textAlign:"center",padding:"24px 0",color:"var(--ink-l)",fontSize:13}}>
+          No transactions yet — mint some tokens to create on-chain activity!
+        </div>
+      ) : (
+        <div style={{display:"grid",gap:6}}>
+          {txs.map(tx => (
+            <div key={tx.signature} style={{
+              display:"grid", gridTemplateColumns:"1fr auto auto auto",
+              alignItems:"center", gap:10,
+              padding:"9px 12px",
+              background: tx.err ? "var(--red-l)" : "var(--sand)",
+              borderRadius:"var(--r)",
+              border:`1px solid ${tx.err ? "rgba(184,60,40,.15)" : "var(--border)"}`,
+            }}>
+              <div style={{overflow:"hidden"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--ink-m)",marginBottom:2}}>
+                  {shortSig(tx.signature)}
+                </div>
+                <div style={{fontSize:10,color:"var(--ink-l)"}}>
+                  {accountLabel(tx.account)}
+                </div>
+              </div>
+              <span style={{
+                fontSize:10,fontWeight:600,padding:"2px 6px",borderRadius:3,
+                background: tx.err ? "var(--red-l)" : "var(--teal-l)",
+                color: tx.err ? "var(--red)" : "var(--teal-d)",
+                whiteSpace:"nowrap"
+              }}>{tx.err ? "failed" : "success"}</span>
+              <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--ink-l)",whiteSpace:"nowrap"}}>
+                {tx.blockTime ? timeAgo(tx.blockTime) : "—"}
+              </span>
+              <a
+                href={`${EXPLORER}/tx/${tx.signature}?cluster=${CLUSTER}`}
+                target="_blank" rel="noopener"
+                style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--sky)",textDecoration:"none",whiteSpace:"nowrap"}}
+              >↗ View</a>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{marginTop:12,fontSize:11,color:"var(--ink-l)",display:"flex",alignItems:"center",gap:6}}>
+        <div style={{width:6,height:6,borderRadius:"50%",background:"var(--teal)",animation:"pulse-dot 2s infinite"}}/>
+        Polling Solana devnet RPC every 15 seconds · {txs.length} transactions shown
+      </div>
+    </div>
+  );
+}
+
+
 function JudgeTab({ toast }: any) {
   const { lang } = useLang(); const t = T[lang];
   const [copied, setCopied] = useState("");
@@ -1643,6 +1788,9 @@ function JudgeTab({ toast }: any) {
           ))}
         </div>
       </div>
+
+      {/* ── Live transaction feed ── */}
+      <OnChainFeed />
 
       {/* ── Live on-chain addresses ── */}
       <div className="card mb-20">
@@ -1755,64 +1903,44 @@ export default function App() {
   const [lang, setLang] = useState<Lang>("en");
   const t = T[lang];
 
-  // ── Solana wallet connection ──────────────────────────────────────────────
+  // ── Wallet ─────────────────────────────────────────────────────────────────
   const { connection } = useConnection();
   const walletAdapter  = useWallet();
   const isConnected    = walletAdapter.connected && !!walletAdapter.publicKey;
 
-  // ── Wallet state — starts with demo values, syncs on-chain when connected ─
+  // ── State: demo values until wallet connects, then syncs real balances ─────
   const [wallet, setWallet] = useState({
     usdc: 45000, grain: 3_200_000_000, sgrain: 1_850_000_000, cgrain: 0, chain: 420
   });
-  const [program, setProgram] = useState<Program | null>(null);
+  const [program, setProgram] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
 
-  // Build Anchor program when wallet connects
+  // Build Anchor program when wallet connects (IDL loaded from /idl.json)
   useEffect(() => {
     if (!isConnected || !walletAdapter.publicKey) { setProgram(null); return; }
-    try {
-      const provider = new AnchorProvider(connection, walletAdapter as any, { commitment: "confirmed" });
-      // IDL is loaded dynamically — in production place your IDL JSON at public/idl.json
-      fetch("/idl.json")
-        .then(r => r.json())
-        .then(idl => {
-          const prog = new Program(idl, PROGRAM_ID, provider);
-          setProgram(prog);
-        })
-        .catch(() => {
-          console.warn("IDL not found — running in demo mode. Deploy contracts and add public/idl.json");
-        });
-    } catch (e) {
-      console.error("Failed to init program:", e);
-    }
-  }, [isConnected, walletAdapter.publicKey, connection]);
+    const provider = new AnchorProvider(connection, walletAdapter as any, { commitment: "confirmed" });
+    fetch("/idl.json")
+      .then(r => r.json())
+      .then(idl => setProgram(new Program(idl, PROGRAM_ID as any, provider)))
+      .catch(() => console.warn("IDL not found — some on-chain reads won't work"));
+  }, [isConnected, walletAdapter.publicKey?.toBase58()]);
 
-  // Sync real on-chain balances whenever wallet or program changes
+  // Sync real balances from chain
   const syncBalances = useCallback(async () => {
     if (!isConnected || !walletAdapter.publicKey) return;
     setSyncing(true);
     try {
-      const balances = await fetchWalletBalances(connection, walletAdapter.publicKey);
-      setWallet({
-        usdc:   balances.usdc,
-        grain:  balances.grain,
-        sgrain: balances.sgrain,
-        cgrain: balances.cgrain,
-        chain:  balances.chain,
-      });
-    } catch (e) {
-      console.error("syncBalances error:", e);
-    } finally {
-      setSyncing(false);
-    }
-  }, [isConnected, walletAdapter.publicKey, connection]);
+      const b = await fetchWalletBalances(connection, walletAdapter.publicKey);
+      setWallet({ usdc: b.usdc, grain: b.grain, sgrain: b.sgrain, cgrain: b.cgrain, chain: b.chain });
+    } catch (e) { console.error("syncBalances:", e); }
+    finally { setSyncing(false); }
+  }, [isConnected, walletAdapter.publicKey?.toBase58()]);
 
-  // Sync on connect and every 15s
   useEffect(() => {
     if (!isConnected) return;
     syncBalances();
-    const interval = setInterval(syncBalances, 15_000);
-    return () => clearInterval(interval);
+    const iv = setInterval(syncBalances, 15_000);
+    return () => clearInterval(iv);
   }, [isConnected, syncBalances]);
 
   const [wPrice, setWPrice] = useState(182.4);
@@ -1850,7 +1978,7 @@ export default function App() {
     { id:"judge",  label:t.judgeGuide, icon:"🎓" },
   ];
 
-  const props = { wallet, setWallet, wPrice, toast, log, program, syncBalances };
+  const props = { wallet, setWallet, wPrice, toast, log, program, walletAdapter, connection, syncBalances, isConnected };
 
   return (
     <LangContext.Provider value={{ lang, setLang }}>
@@ -1870,7 +1998,7 @@ export default function App() {
           </div>
           <div className="price-chip">
             <span className="price-label">{t.network}</span>
-            <span className="price-value">Devnet</span>
+            <span className="price-value" style={{color:"#5ecba1"}}>Devnet</span>
             {syncing && <span style={{fontSize:9,color:"rgba(255,255,255,.4)",marginLeft:4}}>↻</span>}
           </div>
         </div>
@@ -1882,24 +2010,44 @@ export default function App() {
               </button>
             ))}
           </div>
-          {/* Phantom connect button — replaces wallet pills when not connected */}
           {isConnected ? (
             <>
-              <div className="wallet-pill"><div className="w-dot"/>{fmt(wallet.usdc/1_000_000,0)} USDC</div>
-              <div className="wallet-pill"><div className="w-dot"/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
-              <div className="wallet-pill" style={{cursor:"pointer"}} onClick={() => walletAdapter.disconnect()}>
-                <div className="w-dot"/>
-                {walletAdapter.publicKey!.toBase58().slice(0,4)}...{walletAdapter.publicKey!.toBase58().slice(-4)}
+              <div className="wallet-pill"><div className="w-dot"/>
+                {fmt(wallet.usdc/1_000_000,0)} USDC
+              </div>
+              <div className="wallet-pill"><div className="w-dot"/>
+                {(wallet.grain/1_000_000).toFixed(0)} GRAIN
+              </div>
+              <div className="wallet-pill" style={{cursor:"pointer",color:"#5ecba1"}}
+                onClick={() => walletAdapter.disconnect()}>
+                <div className="w-dot" style={{background:"#5ecba1"}}/>
+                {walletAdapter.publicKey!.toBase58().slice(0,4)}…{walletAdapter.publicKey!.toBase58().slice(-4)}
               </div>
             </>
           ) : (
             <WalletMultiButton style={{
               height:32, fontSize:12, padding:"0 14px", borderRadius:20,
-              background:"var(--gold)", fontFamily:"var(--sans)",
+              background:"var(--gold)", fontFamily:"var(--sans)", fontWeight:600,
             }}/>
           )}
         </div>
       </div>
+
+      {/* Banner when not connected */}
+      {!isConnected && (
+        <div style={{
+          background:"var(--amber-l)", borderBottom:"1px solid rgba(192,122,24,.2)",
+          padding:"9px 24px", display:"flex", alignItems:"center", gap:10,
+          fontSize:12, color:"var(--amber)"
+        }}>
+          <span>⚡</span>
+          <span>
+            {lang==="en" ? "Connect Phantom to use real on-chain transactions — running in demo mode." :
+             lang==="ru" ? "Подключите Phantom для реальных транзакций — сейчас демо-режим." :
+             "Нақты транзакциялар үшін Phantom қосыңыз — қазір демо режим."}
+          </span>
+        </div>
+      )}
 
       <div className="nav">
         {TABS.map(tb => (
@@ -1909,13 +2057,6 @@ export default function App() {
           </button>
         ))}
       </div>
-
-      {!isConnected && (
-        <div style={{background:"var(--amber-l)",borderBottom:"1px solid rgba(192,122,24,.2)",padding:"10px 24px",display:"flex",alignItems:"center",gap:10,fontSize:13,color:"var(--amber)"}}>
-          <span>⚡</span>
-          <span>{lang==="en"?"Connect Phantom wallet to use real on-chain transactions. Running in demo mode.":lang==="ru"?"Подключите кошелёк Phantom для реальных транзакций. Работает в режиме демо.":"Нақты транзакциялар үшін Phantom әмиянын қосыңыз. Демо режимінде жұмыс істейді."}</span>
-        </div>
-      )}
 
       <div style={{flex:1, paddingBottom: activities.length ? 44 : 0}}>
         {tab==="farmer" && <FarmerTab {...props}/>}
@@ -1933,7 +2074,10 @@ export default function App() {
               <div key={i} style={{display:"flex",alignItems:"center",gap:8,flex:1,overflow:"hidden"}}>
                 <div className="act-dot" style={{background:a.c}}/>
                 <span className="act-text">{a.t}</span>
-                {a.sig && <a href={explorerTx(a.sig)} target="_blank" rel="noopener" style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--teal)",flexShrink:0}}>↗ Explorer</a>}
+                {a.sig && (
+                  <a href={explorerTx(a.sig)} target="_blank" rel="noopener"
+                    style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--teal)",flexShrink:0}}>↗ Explorer</a>
+                )}
                 <span className="act-time">{a.ts}</span>
               </div>
             ))}
