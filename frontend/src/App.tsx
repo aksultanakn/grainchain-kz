@@ -130,6 +130,31 @@ const T = {
       ["AIFC","English common law, 0% VAT, Fintech Lab"],
       ["Kostanay Pilot (Sep 2025)","Ministry of AI + AIFC blockchain program"],
     ],
+    // Forward Market tab
+    forwardMarket: "Forward Market",
+    fwdTitle: "Grain Forward Market",
+    fwdSub: "Brokers post forward offers · Farmers lock in prices before harvest",
+    fwdOpenOffers: "Open Offers", fwdYourContract: "Your Contract", fwdTotalLocked: "USDC Locked",
+    fwdPostOffer: "Post Forward Offer", fwdQty: "Grain quantity (kg)", fwdPriceKg: "Price per kg (USDC)",
+    fwdGrade: "Min grade", fwdExpiry: "Expiry date", fwdLockUsdc: "Lock USDC & Post",
+    fwdAvailOffers: "Available Forward Offers",
+    fwdBroker: "Broker", fwdPrice: "Price/kg", fwdCapacity: "Capacity", fwdFilled: "Filled", fwdExpires: "Expires",
+    fwdAccept: "Accept", fwdAcceptOffer: "Accept Forward Offer",
+    fwdLockGrain: "GRAIN to lock (kg)", fwdYouReceive: "You receive at settlement",
+    fwdConfirmAccept: "Lock GRAIN & Accept",
+    fwdYourContractLabel: "YOUR FORWARD CONTRACT · ON-CHAIN",
+    fwdContractActive: "● Contract active — awaiting settlement",
+    fwdForwardPrice: "Forward price", fwdSettlesOn: "Settles on", fwdGrainLocked: "GRAIN locked",
+    fwdUsdcAtSettlement: "USDC at settlement", fwdSettle: "Settle Contract",
+    fwdNoContract: "No active forward contract",
+    fwdNoContractSub: "Accept a broker offer to lock in your wheat price for harvest",
+    fwdHowWorks: "How forward contracts work",
+    fwdStep1: "Broker locks USDC collateral on-chain at their offered price",
+    fwdStep2: "Farmer accepts → GRAIN tokens escrowed in contract PDA",
+    fwdStep3: "At expiry: GRAIN → broker, USDC → farmer (atomic, trustless)",
+    fwdStep4: "Price risk eliminated for farmer. Delivery guaranteed for broker.",
+    fwdNoOffers: "No open offers right now",
+    fwdCancelOffer: "Cancel Offer",
     activity: "Activity",
   },
   ru: {
@@ -248,6 +273,30 @@ const T = {
       ["МФЦА","Английское общее право, 0% НДС, Fintech Lab"],
       ["Пилот в Костанае (сен. 2025)","Мин. цифрового развития + блокчейн-программа МФЦА"],
     ],
+    forwardMarket: "Форвардный рынок",
+    fwdTitle: "Форвардный рынок зерна",
+    fwdSub: "Брокеры публикуют форвардные предложения · Фермеры фиксируют цену до урожая",
+    fwdOpenOffers: "Открытые предложения", fwdYourContract: "Ваш контракт", fwdTotalLocked: "USDC заблокировано",
+    fwdPostOffer: "Разместить форвардное предложение", fwdQty: "Количество зерна (кг)", fwdPriceKg: "Цена за кг (USDC)",
+    fwdGrade: "Мин. класс", fwdExpiry: "Дата исполнения", fwdLockUsdc: "Заблокировать USDC и разместить",
+    fwdAvailOffers: "Доступные форвардные предложения",
+    fwdBroker: "Брокер", fwdPrice: "Цена/кг", fwdCapacity: "Объём", fwdFilled: "Заполнено", fwdExpires: "Истекает",
+    fwdAccept: "Принять", fwdAcceptOffer: "Принять форвардное предложение",
+    fwdLockGrain: "GRAIN для блокировки (кг)", fwdYouReceive: "Вы получите при расчёте",
+    fwdConfirmAccept: "Заблокировать GRAIN и принять",
+    fwdYourContractLabel: "ВАШ ФОРВАРДНЫЙ КОНТРАКТ · ON-CHAIN",
+    fwdContractActive: "● Контракт активен — ожидает расчёта",
+    fwdForwardPrice: "Форвардная цена", fwdSettlesOn: "Расчёт", fwdGrainLocked: "GRAIN заблокировано",
+    fwdUsdcAtSettlement: "USDC при расчёте", fwdSettle: "Провести расчёт",
+    fwdNoContract: "Нет активного форвардного контракта",
+    fwdNoContractSub: "Примите предложение брокера, чтобы зафиксировать цену на пшеницу",
+    fwdHowWorks: "Как работают форвардные контракты",
+    fwdStep1: "Брокер блокирует USDC залог on-chain по предложенной цене",
+    fwdStep2: "Фермер принимает → токены GRAIN запираются в PDA контракта",
+    fwdStep3: "По истечении: GRAIN → брокеру, USDC → фермеру (атомарно, без посредников)",
+    fwdStep4: "Ценовой риск устранён для фермера. Поставка гарантирована для брокера.",
+    fwdNoOffers: "Нет открытых предложений",
+    fwdCancelOffer: "Отменить предложение",
     activity: "Активность",
   },
   kz: {
@@ -366,6 +415,30 @@ const T = {
       ["ҚМҚО","Ағылшын жалпы құқығы, 0% ҚҚС, Fintech Lab"],
       ["Қостанай пилоты (қыр. 2025)","Цифрлық даму министрлігі + ҚМҚО блокчейн бағдарламасы"],
     ],
+    forwardMarket: "Форвард нарығы",
+    fwdTitle: "Астық форвард нарығы",
+    fwdSub: "Брокерлер форвард ұсыныстарын жариялайды · Фермерлер егін алдында бағаны бекітеді",
+    fwdOpenOffers: "Ашық ұсыныстар", fwdYourContract: "Сіздің келісім-шартыңыз", fwdTotalLocked: "USDC бекітілді",
+    fwdPostOffer: "Форвард ұсынысын жариялау", fwdQty: "Астық мөлшері (кг)", fwdPriceKg: "1 кг бағасы (USDC)",
+    fwdGrade: "Мин. сорт", fwdExpiry: "Орындалу күні", fwdLockUsdc: "USDC бекіту және жариялау",
+    fwdAvailOffers: "Қолжетімді форвард ұсыныстары",
+    fwdBroker: "Брокер", fwdPrice: "Баға/кг", fwdCapacity: "Сыйымдылық", fwdFilled: "Толтырылды", fwdExpires: "Мерзімі",
+    fwdAccept: "Қабылдау", fwdAcceptOffer: "Форвард ұсынысын қабылдау",
+    fwdLockGrain: "Бекітуге арналған GRAIN (кг)", fwdYouReceive: "Есеп айырысу кезінде аласыз",
+    fwdConfirmAccept: "GRAIN бекіту және қабылдау",
+    fwdYourContractLabel: "СІЗДІҢ ФОРВАРД КЕЛІСІМ-ШАРТЫҢЫЗ · ON-CHAIN",
+    fwdContractActive: "● Келісім-шарт белсенді — есеп айырысу күтілуде",
+    fwdForwardPrice: "Форвард бағасы", fwdSettlesOn: "Есеп айырысу", fwdGrainLocked: "GRAIN бекітілді",
+    fwdUsdcAtSettlement: "Есеп айырысудағы USDC", fwdSettle: "Есеп айырысуды жүргізу",
+    fwdNoContract: "Белсенді форвард келісім-шарты жоқ",
+    fwdNoContractSub: "Бидай бағасын бекіту үшін брокер ұсынысын қабылдаңыз",
+    fwdHowWorks: "Форвард келісім-шарттары қалай жұмыс істейді",
+    fwdStep1: "Брокер ұсынылған бағамен USDC кепілдігін on-chain бекітеді",
+    fwdStep2: "Фермер қабылдайды → GRAIN токендері келісім-шарт PDA-да бекітіледі",
+    fwdStep3: "Мерзімі өткен соң: GRAIN → брокерге, USDC → фермерге (атомарлы, сенімсіз)",
+    fwdStep4: "Баға тәуекелі фермер үшін жойылады. Жеткізу брокер үшін кепілдендіріледі.",
+    fwdNoOffers: "Ашық ұсыныстар жоқ",
+    fwdCancelOffer: "Ұсынысты бас тарту",
     activity: "Белсенділік",
   },
 } as const;
@@ -1753,6 +1826,401 @@ function OnChainFeed() {
 }
 
 
+// ─── Forward Market Tab ───────────────────────────────────────────────────────
+
+interface ForwardOffer { id: string; broker: string; grainKg: number; pricePerKg: number; minGrade: number; expiryTs: number; filledKg: number; usdcLocked: number; }
+interface ForwardContract { farmer: string; broker: string; grainKg: number; pricePerKg: number; usdcLocked: number; expiryTs: number; status: "active"|"settled"; }
+
+const DEMO_BROKER = "KazAg…ro7F";
+const DEMO_BROKER_FULL = "KazAgro Forward Desk";
+
+function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
+  const { lang } = useLang(); const t = T[lang];
+
+  // ── Demo offers ──────────────────────────────────────────────────────────────
+  const marchExpiry = new Date("2027-03-01").getTime() / 1000;
+  const [offers, setOffers] = useState<ForwardOffer[]>([
+    { id:"off-1", broker: DEMO_BROKER, grainKg: 50_000, pricePerKg: 0.2195, minGrade: 3, expiryTs: marchExpiry, filledKg: 12_000, usdcLocked: 50_000 * 0.2195 },
+    { id:"off-2", broker: DEMO_BROKER, grainKg: 20_000, pricePerKg: 0.2240, minGrade: 2, expiryTs: marchExpiry, filledKg: 0,      usdcLocked: 20_000 * 0.2240 },
+  ]);
+
+  const [myContract, setMyContract] = useState<ForwardContract|null>(null);
+  const [postModal, setPostModal]   = useState(false);
+  const [acceptModal, setAcceptModal] = useState<ForwardOffer|null>(null);
+  const [acceptKg, setAcceptKg]     = useState("");
+  const [postQty, setPostQty]       = useState("");
+  const [postPrice, setPostPrice]   = useState("");
+  const [postGrade, setPostGrade]   = useState("3");
+  const [postExpiry, setPostExpiry] = useState("2027-03-01");
+  const [settling, setSettling]     = useState(false);
+
+  const spotPrice = wPrice * 36.744 / 1000; // $/kg from ¢/bushel
+
+  // ── Stats ────────────────────────────────────────────────────────────────────
+  const totalOffersKg   = offers.reduce((s, o) => s + o.grainKg, 0);
+  const totalFilledKg   = offers.reduce((s, o) => s + o.filledKg, 0);
+  const totalUsdcLocked = offers.reduce((s, o) => s + o.usdcLocked, 0);
+  const activeOffers    = offers.filter(o => o.filledKg < o.grainKg);
+
+  function fmtDate(ts: number) {
+    return new Date(ts * 1000).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  }
+  function daysUntil(ts: number) {
+    return Math.max(0, Math.ceil((ts * 1000 - Date.now()) / 86_400_000));
+  }
+
+  // ── Post offer ───────────────────────────────────────────────────────────────
+  function handlePostOffer() {
+    const kg     = parseFloat(postQty);
+    const price  = parseFloat(postPrice);
+    const expiry = new Date(postExpiry).getTime() / 1000;
+    if (!kg || !price || kg <= 0 || price <= 0) { toast(lang==="en"?"Fill all fields":"Заполните все поля","err"); return; }
+    const usdcNeeded = kg * price;
+    if (usdcNeeded > wallet.usdc / 1_000_000) { toast(lang==="en"?"Insufficient USDC":"Недостаточно USDC","err"); return; }
+    const newOffer: ForwardOffer = {
+      id: `off-${Date.now()}`, broker: DEMO_BROKER,
+      grainKg: kg, pricePerKg: price, minGrade: parseInt(postGrade),
+      expiryTs: expiry, filledKg: 0, usdcLocked: usdcNeeded,
+    };
+    setOffers(prev => [newOffer, ...prev]);
+    setWallet((w: any) => ({ ...w, usdc: w.usdc - usdcNeeded * 1_000_000 }));
+    log({ c:"var(--sky)", t:`Forward offer posted: ${fmtK(kg)} kg @ $${price}/kg · ${fmtK(usdcNeeded)} USDC locked`, ts: nowStr() });
+    toast(`✓ Forward offer posted · ${fmtK(usdcNeeded)} USDC locked`);
+    setPostModal(false); setPostQty(""); setPostPrice("");
+  }
+
+  // ── Accept offer ─────────────────────────────────────────────────────────────
+  function handleAccept() {
+    if (!acceptModal) return;
+    const kg        = parseFloat(acceptKg);
+    const grainLam  = kg * 1_000_000;
+    const usdcOut   = kg * acceptModal.pricePerKg;
+    if (!kg || kg <= 0) { toast(lang==="en"?"Enter amount":"Введите количество","err"); return; }
+    if (grainLam > wallet.grain) { toast(lang==="en"?"Insufficient GRAIN":"Недостаточно GRAIN","err"); return; }
+    const available = acceptModal.grainKg - acceptModal.filledKg;
+    if (kg > available) { toast(lang==="en"?`Max ${fmtK(available)} kg`:`Макс. ${fmtK(available)} кг`,"err"); return; }
+
+    setOffers(prev => prev.map(o =>
+      o.id === acceptModal.id ? { ...o, filledKg: o.filledKg + kg } : o
+    ));
+    setWallet((w: any) => ({ ...w, grain: w.grain - grainLam }));
+    setMyContract({
+      farmer: "You",
+      broker: DEMO_BROKER_FULL,
+      grainKg: kg,
+      pricePerKg: acceptModal.pricePerKg,
+      usdcLocked: usdcOut,
+      expiryTs: acceptModal.expiryTs,
+      status: "active",
+    });
+    log({ c:"var(--teal)", t:`Forward accepted: ${fmtK(kg)} kg GRAIN locked @ $${acceptModal.pricePerKg}/kg · $${fmt(usdcOut,0)} USDC reserved`, ts: nowStr() });
+    toast(`✓ Contract created · ${fmtK(kg)} kg locked @ $${acceptModal.pricePerKg}/kg`);
+    setAcceptModal(null); setAcceptKg("");
+  }
+
+  // ── Settle ────────────────────────────────────────────────────────────────────
+  function handleSettle() {
+    if (!myContract) return;
+    setSettling(true);
+    setTimeout(() => {
+      const grainBack = 0; // grain goes to broker
+      const usdcIn    = myContract.usdcLocked;
+      const pnl       = myContract.usdcLocked - myContract.grainKg * spotPrice;
+      setWallet((w: any) => ({ ...w, usdc: w.usdc + usdcIn * 1_000_000 }));
+      setMyContract(c => c ? { ...c, status: "settled" } : null);
+      log({ c:"var(--gold)", t:`Forward settled: ${fmtK(myContract.grainKg)} kg GRAIN → broker · $${fmt(usdcIn,2)} USDC → you · PnL vs spot: ${pnl>=0?"+":""}$${fmt(pnl,2)}`, ts: nowStr() });
+      toast(`✓ Settled · $${fmt(usdcIn,2)} USDC received · ${pnl>=0?"beat":"below"} spot by $${fmt(Math.abs(pnl),2)}`);
+      setSettling(false);
+    }, 1200);
+  }
+
+  const acceptUsdc  = acceptModal ? (parseFloat(acceptKg)||0) * acceptModal.pricePerKg : 0;
+  const contractPnl = myContract ? myContract.usdcLocked - myContract.grainKg * spotPrice : 0;
+
+  return (
+    <div className="page">
+      {/* ── Stats row ─────────────────────────────────────────────────────── */}
+      <div className="stats c4 mb-20">
+        <div className="stat-card">
+          <div className="stat-label">{t.fwdOpenOffers}</div>
+          <div className="stat-val sky">{activeOffers.length}</div>
+          <div className="stat-sub">{fmtK(totalOffersKg - totalFilledKg)} kg available</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">{t.fwdTotalLocked}</div>
+          <div className="stat-val sky">${fmtK(totalUsdcLocked)}</div>
+          <div className="stat-sub">{offers.length} broker offers on-chain</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Avg Forward Price</div>
+          <div className="stat-val gold">${fmt(offers.reduce((s,o)=>s+o.pricePerKg*o.grainKg,0)/Math.max(1,totalOffersKg),4)}/kg</div>
+          <div className="stat-sub">{spotPrice > 0 ? `Spot $${fmt(spotPrice,4)}/kg` : "—"}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">{t.fwdYourContract}</div>
+          <div className={`stat-val ${myContract ? "teal" : "muted"}`}>
+            {myContract ? `${fmtK(myContract.grainKg)} kg` : "—"}
+          </div>
+          <div className="stat-sub">{myContract ? `$${fmt(myContract.pricePerKg,4)}/kg locked` : t.fwdNoContract}</div>
+        </div>
+      </div>
+
+      <div className="g2 mb-16">
+        {/* ── Left: Offers table ───────────────────────────────────────────── */}
+        <div>
+          <div className="flex-between mb-12">
+            <div className="card-title" style={{margin:0}}>{t.fwdAvailOffers}</div>
+            <button className="btn-primary" style={{fontSize:12,padding:"6px 14px"}} onClick={()=>setPostModal(true)}>
+              + {t.fwdPostOffer}
+            </button>
+          </div>
+
+          {activeOffers.length === 0 ? (
+            <div className="card" style={{textAlign:"center",padding:"32px 0",color:"var(--ink-l)"}}>
+              {t.fwdNoOffers}
+            </div>
+          ) : (
+            <div style={{display:"grid",gap:10}}>
+              {activeOffers.map(offer => {
+                const fillPct  = (offer.filledKg / offer.grainKg * 100).toFixed(0);
+                const avail    = offer.grainKg - offer.filledKg;
+                const premium  = spotPrice > 0 ? ((offer.pricePerKg / spotPrice - 1) * 100).toFixed(1) : null;
+                return (
+                  <div key={offer.id} className="card" style={{padding:"16px 20px"}}>
+                    <div className="flex-between mb-8">
+                      <div>
+                        <div style={{fontWeight:700,fontSize:14,color:"var(--ink)",marginBottom:2}}>{DEMO_BROKER_FULL}</div>
+                        <div style={{fontSize:11,color:"var(--ink-l)",fontFamily:"var(--mono)"}}>
+                          Grade {offer.minGrade}+ · Expires {fmtDate(offer.expiryTs)} ({daysUntil(offer.expiryTs)}d)
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:"var(--gold)",fontFamily:"var(--mono)"}}>
+                          ${fmt(offer.pricePerKg,4)}<span style={{fontSize:12,color:"var(--ink-l)"}}>/kg</span>
+                        </div>
+                        {premium !== null && (
+                          <div style={{fontSize:11,color:parseFloat(premium)>=0?"var(--teal)":"var(--red)"}}>
+                            {parseFloat(premium)>=0?"+":""}{premium}% vs spot
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fill bar */}
+                    <div style={{marginBottom:10}}>
+                      <div className="flex-between" style={{fontSize:11,color:"var(--ink-l)",marginBottom:4}}>
+                        <span>{fmtK(offer.filledKg)} / {fmtK(offer.grainKg)} kg filled</span>
+                        <span>{fillPct}%</span>
+                      </div>
+                      <div style={{height:4,borderRadius:2,background:"var(--border)",overflow:"hidden"}}>
+                        <div style={{width:`${fillPct}%`,height:"100%",background:"var(--sky)",borderRadius:2,transition:"width .4s"}}/>
+                      </div>
+                    </div>
+
+                    <div className="flex-between">
+                      <div style={{fontSize:12,color:"var(--ink-l)"}}>
+                        {fmtK(avail)} kg available · {fmtK(offer.usdcLocked)} USDC locked
+                      </div>
+                      <button
+                        className="btn-primary"
+                        style={{fontSize:12,padding:"6px 18px"}}
+                        onClick={()=>{ setAcceptModal(offer); setAcceptKg(""); }}
+                        disabled={!!myContract && myContract.status==="active"}
+                      >
+                        {t.fwdAccept}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── Right: Your contract + explainer ────────────────────────────── */}
+        <div style={{display:"grid",gap:16,alignContent:"start"}}>
+          {/* Active contract card */}
+          {myContract && myContract.status === "active" ? (
+            <div className="card" style={{borderColor:"var(--teal)",borderWidth:2}}>
+              <div className="badge badge-live" style={{marginBottom:10}}>● ACTIVE CONTRACT</div>
+              <div style={{fontSize:11,color:"var(--ink-l)",fontFamily:"var(--mono)",letterSpacing:1,marginBottom:12}}>
+                {t.fwdYourContractLabel}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+                {[
+                  [t.fwdForwardPrice, `$${fmt(myContract.pricePerKg,4)}/kg`, "var(--gold)"],
+                  [t.fwdSettlesOn,    fmtDate(myContract.expiryTs), "var(--ink)"],
+                  [t.fwdGrainLocked,  `${fmtK(myContract.grainKg)} kg`, "var(--sky)"],
+                  [t.fwdUsdcAtSettlement, `$${fmt(myContract.usdcLocked,2)}`, "var(--teal)"],
+                ].map(([lbl,val,col]) => (
+                  <div key={lbl as string} className="mini-stat" style={{background:"var(--sand)",borderRadius:8,padding:"10px 12px"}}>
+                    <div style={{fontSize:10,color:"var(--ink-l)",marginBottom:2}}>{lbl}</div>
+                    <div style={{fontSize:15,fontWeight:700,color:col as string,fontFamily:"var(--mono)"}}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:12,color:contractPnl>=0?"var(--teal)":"var(--red)",marginBottom:12,fontWeight:600}}>
+                {contractPnl>=0?"✓ Forward price beats spot by":"✗ Spot beats forward by"} ${fmt(Math.abs(contractPnl),2)}
+              </div>
+              <div style={{fontSize:11,color:"var(--ink-l)",marginBottom:14}}>
+                {fmtDate(myContract.expiryTs)} — {daysUntil(myContract.expiryTs)} days to settlement
+              </div>
+              <button
+                className="btn-primary"
+                style={{width:"100%",background:"var(--teal)"}}
+                onClick={handleSettle}
+                disabled={settling}
+              >
+                {settling ? "Settling…" : t.fwdSettle}
+              </button>
+            </div>
+          ) : myContract?.status === "settled" ? (
+            <div className="card" style={{borderColor:"var(--gold)",borderWidth:2}}>
+              <div className="badge" style={{background:"var(--gold-l)",color:"var(--gold-d)",marginBottom:10}}>✓ SETTLED</div>
+              <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>Contract complete</div>
+              <div style={{fontSize:12,color:"var(--ink-l)"}}>
+                ${fmt(myContract.usdcLocked,2)} USDC received · {fmtK(myContract.grainKg)} kg delivered to broker
+              </div>
+            </div>
+          ) : (
+            <div className="card" style={{textAlign:"center",padding:"28px 16px"}}>
+              <div style={{fontSize:28,marginBottom:8}}>📜</div>
+              <div style={{fontWeight:600,marginBottom:6}}>{t.fwdNoContract}</div>
+              <div style={{fontSize:12,color:"var(--ink-l)"}}>{t.fwdNoContractSub}</div>
+            </div>
+          )}
+
+          {/* How it works */}
+          <div className="card">
+            <div className="card-title" style={{fontSize:13}}>{t.fwdHowWorks}</div>
+            <div style={{display:"grid",gap:10}}>
+              {([
+                ["1", t.fwdStep1, "var(--sky)"],
+                ["2", t.fwdStep2, "var(--teal)"],
+                ["3", t.fwdStep3, "var(--gold)"],
+                ["4", t.fwdStep4, "var(--green)"],
+              ] as [string,string,string][]).map(([num, text, col]) => (
+                <div key={num} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <div style={{width:20,height:20,borderRadius:"50%",background:col,color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{num}</div>
+                  <div style={{fontSize:12,color:"var(--ink-m)",lineHeight:1.5}}>{text}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:14,paddingTop:12,borderTop:"1px solid var(--border)",fontSize:11,color:"var(--ink-l)"}}>
+              Settlement is <strong>permissionless</strong> — any wallet can trigger it after expiry. GRAIN → broker, USDC → farmer in a single atomic transaction.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Post Offer Modal ─────────────────────────────────────────────────── */}
+      {postModal && (
+        <div className="modal-overlay" onClick={()=>setPostModal(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:420}}>
+            <div className="modal-title">{t.fwdPostOffer}</div>
+            <div style={{fontSize:12,color:"var(--ink-l)",marginBottom:18}}>
+              USDC will be locked on-chain as collateral for the offer.
+            </div>
+            <div style={{display:"grid",gap:12}}>
+              <label style={{fontSize:12,color:"var(--ink-l)"}}>
+                {t.fwdQty}
+                <input className="input" type="number" value={postQty} onChange={e=>setPostQty(e.target.value)}
+                  placeholder="e.g. 10000" style={{marginTop:4}}/>
+              </label>
+              <label style={{fontSize:12,color:"var(--ink-l)"}}>
+                {t.fwdPriceKg}
+                <input className="input" type="number" step="0.0001" value={postPrice} onChange={e=>setPostPrice(e.target.value)}
+                  placeholder={`e.g. ${fmt(spotPrice*1.08,4)}`} style={{marginTop:4}}/>
+                {postPrice && spotPrice > 0 && (
+                  <div style={{fontSize:11,color:"var(--teal)",marginTop:4}}>
+                    +{fmt((parseFloat(postPrice)/spotPrice-1)*100,1)}% vs spot
+                  </div>
+                )}
+              </label>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <label style={{fontSize:12,color:"var(--ink-l)"}}>
+                  {t.fwdGrade}
+                  <select className="input" value={postGrade} onChange={e=>setPostGrade(e.target.value)} style={{marginTop:4}}>
+                    {[1,2,3,4,5].map(g=><option key={g} value={g}>Grade {g}</option>)}
+                  </select>
+                </label>
+                <label style={{fontSize:12,color:"var(--ink-l)"}}>
+                  {t.fwdExpiry}
+                  <input className="input" type="date" value={postExpiry} onChange={e=>setPostExpiry(e.target.value)} style={{marginTop:4}}/>
+                </label>
+              </div>
+              {postQty && postPrice && (
+                <div style={{background:"var(--sand)",borderRadius:8,padding:"10px 14px",fontSize:12}}>
+                  <div className="flex-between">
+                    <span style={{color:"var(--ink-l)"}}>USDC to lock</span>
+                    <strong style={{color:"var(--gold)"}}>${fmt(parseFloat(postQty)*parseFloat(postPrice)||0,2)}</strong>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:20}}>
+              <button className="btn-secondary" onClick={()=>setPostModal(false)}>{t.cancel}</button>
+              <button className="btn-primary" onClick={handlePostOffer}>{t.fwdLockUsdc}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Accept Modal ─────────────────────────────────────────────────────── */}
+      {acceptModal && (
+        <div className="modal-overlay" onClick={()=>setAcceptModal(null)}>
+          <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400}}>
+            <div className="modal-title">{t.fwdAcceptOffer}</div>
+            <div style={{background:"var(--sand)",borderRadius:8,padding:"12px 16px",marginBottom:16}}>
+              <div className="flex-between" style={{marginBottom:4}}>
+                <span style={{fontSize:12,color:"var(--ink-l)"}}>Broker</span>
+                <span style={{fontWeight:600,fontSize:12}}>{DEMO_BROKER_FULL}</span>
+              </div>
+              <div className="flex-between" style={{marginBottom:4}}>
+                <span style={{fontSize:12,color:"var(--ink-l)"}}>Forward price</span>
+                <span style={{fontWeight:700,color:"var(--gold)",fontFamily:"var(--mono)"}}>${fmt(acceptModal.pricePerKg,4)}/kg</span>
+              </div>
+              <div className="flex-between">
+                <span style={{fontSize:12,color:"var(--ink-l)"}}>Expires</span>
+                <span style={{fontSize:12}}>{fmtDate(acceptModal.expiryTs)}</span>
+              </div>
+            </div>
+            <label style={{fontSize:12,color:"var(--ink-l)"}}>
+              {t.fwdLockGrain}
+              <input className="input" type="number" value={acceptKg} onChange={e=>setAcceptKg(e.target.value)}
+                placeholder={`max ${fmtK(acceptModal.grainKg - acceptModal.filledKg)} kg`} style={{marginTop:4}}/>
+            </label>
+            {acceptKg && parseFloat(acceptKg) > 0 && (
+              <div style={{marginTop:12,background:"var(--teal-l)",borderRadius:8,padding:"12px 16px",display:"grid",gap:6}}>
+                <div className="flex-between">
+                  <span style={{fontSize:12,color:"var(--ink-l)"}}>GRAIN escrowed</span>
+                  <span style={{fontWeight:600,fontFamily:"var(--mono)"}}>{fmtK(parseFloat(acceptKg))} kg</span>
+                </div>
+                <div className="flex-between">
+                  <span style={{fontSize:12,color:"var(--ink-l)"}}>{t.fwdYouReceive}</span>
+                  <span style={{fontWeight:700,color:"var(--teal)",fontFamily:"var(--mono)"}}>${fmt(acceptUsdc,2)} USDC</span>
+                </div>
+                {spotPrice > 0 && (
+                  <div className="flex-between">
+                    <span style={{fontSize:12,color:"var(--ink-l)"}}>vs selling at spot</span>
+                    <span style={{fontSize:12,color:acceptUsdc > parseFloat(acceptKg)*spotPrice?"var(--teal)":"var(--red)"}}>
+                      {acceptUsdc > parseFloat(acceptKg)*spotPrice ? "+" : ""}${fmt(acceptUsdc - parseFloat(acceptKg)*spotPrice, 2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:20}}>
+              <button className="btn-secondary" onClick={()=>setAcceptModal(null)}>{t.cancel}</button>
+              <button className="btn-primary" onClick={handleAccept}>{t.fwdConfirmAccept}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function JudgeTab({ toast }: any) {
   const { lang } = useLang(); const t = T[lang];
   const [copied, setCopied] = useState("");
@@ -1925,8 +2393,9 @@ export default function App() {
     { id:"farmer", label:t.farmerDash, icon:"🌾" },
     { id:"market", label:t.p2pMarket,  icon:"⚖️" },
     { id:"lender", label:t.lenderVault,icon:"💰" },
-    { id:"carry",  label:t.carryVault, icon:"📈", badge:"NEW" },
-    { id:"judge",  label:t.judgeGuide, icon:"🎓" },
+    { id:"carry",   label:t.carryVault,    icon:"📈" },
+    { id:"forward", label:t.forwardMarket, icon:"📜", badge:"NEW" },
+    { id:"judge",   label:t.judgeGuide,    icon:"🎓" },
   ];
 
   const props = { wallet, setWallet, wPrice, toast, log };
@@ -1978,8 +2447,9 @@ export default function App() {
         {tab==="farmer" && <FarmerTab {...props}/>}
         {tab==="market" && <MarketTab {...props}/>}
         {tab==="lender" && <LenderTab {...props}/>}
-        {tab==="carry"  && <CarryTab  {...props}/>}
-        {tab==="judge"  && <JudgeTab  toast={toast}/>}
+        {tab==="carry"   && <CarryTab   {...props}/>}
+        {tab==="forward" && <ForwardTab {...props}/>}
+        {tab==="judge"   && <JudgeTab   toast={toast}/>}
       </div>
 
       {activities.length > 0 && (

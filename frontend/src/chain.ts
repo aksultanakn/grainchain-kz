@@ -79,6 +79,18 @@ export async function getCarryPositionPDA(user: PublicKey) {
 export async function getUserRewardsPDA(user: PublicKey) {
   return PublicKey.findProgramAddressSync([SEEDS.userRewards, user.toBytes()], PROGRAM_ID);
 }
+export function getForwardOfferPDA(broker: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("forward_offer"), broker.toBytes()], PROGRAM_ID);
+}
+export function getForwardUsdcVaultPDA(broker: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("forward_usdc_vault"), broker.toBytes()], PROGRAM_ID);
+}
+export function getForwardContractPDA(farmer: PublicKey, broker: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("forward_contract"), farmer.toBytes(), broker.toBytes()], PROGRAM_ID);
+}
+export function getForwardGrainEscrowPDA(farmer: PublicKey, broker: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("forward_grain_escrow"), farmer.toBytes(), broker.toBytes()], PROGRAM_ID);
+}
 
 // ─── Read all on-chain balances for a wallet ──────────────────────────────────
 export interface OnChainWallet {

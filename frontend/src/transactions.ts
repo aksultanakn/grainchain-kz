@@ -9,6 +9,8 @@ import {
   getCarryVaultPDA, getCarryOraclePDA, getRewardsPoolPDA,
   getLoanPositionPDA, getCollateralEscrowPDA, getLenderPositionPDA,
   getSgrainPositionPDA, getCarryPositionPDA, getUserRewardsPDA,
+  getForwardOfferPDA, getForwardUsdcVaultPDA,
+  getForwardContractPDA, getForwardGrainEscrowPDA,
 } from "./chain";
 
 // Helper: ensure ATA exists, create if not
@@ -315,6 +317,111 @@ export async function txClaimRewards(
       chainMint:     CHAIN_MINT,
       tokenProgram:  TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+
+  return sig;
+}
+
+// ─── Post forward offer: broker locks USDC ────────────────────────────────────
+export async function txPostForwardOffer(
+  program: Program,
+  provider: AnchorProvider,
+  grainAmountKg: number,     // raw kg
+  forwardPricePerKg: number, // USDC lamports per kg (e.g. 220_000 = $0.22)
+  minGrade: number,
+  expiryTs: number,          // unix timestamp
+): Promise<string> {
+  const broker = provider.wallet.publicKey;
+  const [forwardOffer]    = getForwardOfferPDA(broker);
+  const [forwardUsdcVault] = getForwardUsdcVaultPDA(broker);
+  const [protocolConfig]  = getProtocolConfigPDA() as unknown as [PublicKey, number];
+  const brokerUsdcAta     = await getAssociatedTokenAddress(USDC_MINT, broker);
+
+  const sig = await (program.methods as any)
+    .postForwardOffer({
+      grainAmountKg:      new BN(grainAmountKg),
+      forwardPricePerKg:  new BN(forwardPricePerKg),
+      minGrade,
+      expiryTs:           new BN(expiryTs),
+    })
+    .accounts({
+      broker,
+      protocolConfig,
+      forwardOffer,
+      forwardUsdcVault,
+      brokerUsdcAccount: brokerUsdcAta,
+      usdcMint:          USDC_MINT,
+      tokenProgram:      TOKEN_PROGRAM_ID,
+      systemProgram:     SystemProgram.programId,
+    })
+    .rpc();
+
+  return sig;
+}
+
+// ─── Accept forward offer: farmer escrows GRAIN ───────────────────────────────
+export async function txAcceptForwardOffer(
+  program: Program,
+  provider: AnchorProvider,
+  brokerPubkey: PublicKey,
+  grainAmountKg: number,
+): Promise<string> {
+  const farmer = provider.wallet.publicKey;
+  const [forwardOffer]       = getForwardOfferPDA(brokerPubkey);
+  const [forwardContract]    = getForwardContractPDA(farmer, brokerPubkey);
+  const [forwardGrainEscrow] = getForwardGrainEscrowPDA(farmer, brokerPubkey);
+  const [protocolConfig]     = getProtocolConfigPDA() as unknown as [PublicKey, number];
+  const farmerGrainAta       = await getAssociatedTokenAddress(GRAIN_MINT, farmer);
+
+  const sig = await (program.methods as any)
+    .acceptForwardOffer(new BN(grainAmountKg))
+    .accounts({
+      farmer,
+      protocolConfig,
+      forwardOffer,
+      forwardGrainEscrow,
+      forwardContract,
+      farmerGrainAccount: farmerGrainAta,
+      grainMint:          GRAIN_MINT,
+      tokenProgram:       TOKEN_PROGRAM_ID,
+      systemProgram:      SystemProgram.programId,
+    })
+    .rpc();
+
+  return sig;
+}
+
+// ─── Settle forward: permissionless after expiry ─────────────────────────────
+export async function txSettleForward(
+  program: Program,
+  provider: AnchorProvider,
+  farmerPubkey: PublicKey,
+  brokerPubkey: PublicKey,
+): Promise<string> {
+  const settler = provider.wallet.publicKey;
+  const [forwardOffer]       = getForwardOfferPDA(brokerPubkey);
+  const [forwardContract]    = getForwardContractPDA(farmerPubkey, brokerPubkey);
+  const [forwardGrainEscrow] = getForwardGrainEscrowPDA(farmerPubkey, brokerPubkey);
+  const [forwardUsdcVault]   = getForwardUsdcVaultPDA(brokerPubkey);
+  const [carryOracle]        = getCarryOraclePDA() as unknown as [PublicKey, number];
+  const farmerUsdcAta        = await ensureAta(provider, USDC_MINT, farmerPubkey);
+  const brokerGrainAta       = await getAssociatedTokenAddress(GRAIN_MINT, brokerPubkey);
+
+  const sig = await (program.methods as any)
+    .settleForward()
+    .accounts({
+      settler,
+      farmer:             farmerPubkey,
+      broker:             brokerPubkey,
+      forwardOffer,
+      forwardContract,
+      forwardGrainEscrow,
+      forwardUsdcVault,
+      farmerUsdcAccount:  farmerUsdcAta,
+      brokerGrainAccount: brokerGrainAta,
+      carryOracle,
+      tokenProgram:       TOKEN_PROGRAM_ID,
     })
     .rpc();
 
