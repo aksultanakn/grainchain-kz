@@ -1,0 +1,245 @@
+{
+  "address": "4NutBXSNJ9tJLFueRwRd6PjQPzgricziys9uTBLuP8n7",
+  "metadata": { "name": "grainchain", "version": "0.1.0", "spec": "0.1.0" },
+  "instructions": [
+    {
+      "name": "fractionalize",
+      "discriminator": [183,200,238,51,180,45,49,67],
+      "accounts": [
+        { "name": "farmer",            "writable": true, "signer": true },
+        { "name": "protocolConfig",    "pda": { "seeds": [{ "kind": "const", "value": [112,114,111,116,111,99,111,108,95,99,111,110,102,105,103] }] } },
+        { "name": "grainReceipt",      "writable": true },
+        { "name": "grainMint",         "writable": true },
+        { "name": "farmerGrainAccount","writable": true },
+        { "name": "tokenProgram" }
+      ],
+      "args": [{ "name": "amountKg", "type": "u64" }]
+    },
+    {
+      "name": "depositUsdc",
+      "discriminator": [184,148,250,169,224,213,34,126],
+      "accounts": [
+        { "name": "lender",            "writable": true, "signer": true },
+        { "name": "lendingVault",      "writable": true },
+        { "name": "usdcVault",         "writable": true },
+        { "name": "lenderUsdcAccount", "writable": true },
+        { "name": "lenderPosition",    "writable": true },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" }
+      ],
+      "args": [{ "name": "amount", "type": "u64" }]
+    },
+    {
+      "name": "borrow",
+      "discriminator": [228,253,131,202,207,116,89,18],
+      "accounts": [
+        { "name": "farmer",           "writable": true, "signer": true },
+        { "name": "protocolConfig" },
+        { "name": "lendingVault",     "writable": true },
+        { "name": "usdcVault",        "writable": true },
+        { "name": "farmerGrainAccount","writable": true },
+        { "name": "farmerUsdcAccount","writable": true },
+        { "name": "collateralEscrow", "writable": true },
+        { "name": "loanPosition",     "writable": true },
+        { "name": "grainMint" },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" }
+      ],
+      "args": [
+        { "name": "grainCollateralKg", "type": "u64" },
+        { "name": "usdcRequested",     "type": "u64" }
+      ]
+    },
+    {
+      "name": "repay",
+      "discriminator": [234,103,67,82,208,234,219,166],
+      "accounts": [
+        { "name": "farmer",           "writable": true, "signer": true },
+        { "name": "lendingVault",     "writable": true },
+        { "name": "usdcVault",        "writable": true },
+        { "name": "collateralEscrow", "writable": true },
+        { "name": "farmerGrainAccount","writable": true },
+        { "name": "farmerUsdcAccount","writable": true },
+        { "name": "loanPosition",     "writable": true },
+        { "name": "tokenProgram" }
+      ],
+      "args": [{ "name": "usdcRepayAmount", "type": "u64" }]
+    },
+    {
+      "name": "depositSgrain",
+      "discriminator": [94,134,174,155,175,32,8,78],
+      "accounts": [
+        { "name": "user",            "writable": true, "signer": true },
+        { "name": "protocolConfig" },
+        { "name": "sgrainVault",     "writable": true },
+        { "name": "grainReserve",    "writable": true },
+        { "name": "sgrainMint",      "writable": true },
+        { "name": "userGrainAccount","writable": true },
+        { "name": "userSgrainAccount","writable": true },
+        { "name": "sgrainPosition",  "writable": true },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" }
+      ],
+      "args": [{ "name": "grainAmount", "type": "u64" }]
+    },
+    {
+      "name": "withdrawSgrain",
+      "discriminator": [17,49,177,238,235,102,138,228],
+      "accounts": [
+        { "name": "user",             "writable": true, "signer": true },
+        { "name": "protocolConfig" },
+        { "name": "sgrainVault",      "writable": true },
+        { "name": "grainReserve",     "writable": true },
+        { "name": "sgrainMint",       "writable": true },
+        { "name": "userGrainAccount", "writable": true },
+        { "name": "userSgrainAccount","writable": true },
+        { "name": "tokenProgram" }
+      ],
+      "args": [{ "name": "sgrainAmount", "type": "u64" }]
+    },
+    {
+      "name": "enterCarryPosition",
+      "discriminator": [202,209,215,197,150,167,213,20],
+      "accounts": [
+        { "name": "user",              "writable": true, "signer": true },
+        { "name": "protocolConfig" },
+        { "name": "carryVault",        "writable": true },
+        { "name": "carryOracle" },
+        { "name": "carryGrainReserve", "writable": true },
+        { "name": "userGrainAccount",  "writable": true },
+        { "name": "cgrainMint",        "writable": true },
+        { "name": "userCgrainAccount", "writable": true },
+        { "name": "carryPosition",     "writable": true },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" }
+      ],
+      "args": [{ "name": "grainAmount", "type": "u64" }]
+    },
+    {
+      "name": "exitCarryPosition",
+      "discriminator": [254,195,204,29,217,124,81,243],
+      "accounts": [
+        { "name": "user",              "writable": true, "signer": true },
+        { "name": "protocolConfig" },
+        { "name": "carryVault",        "writable": true },
+        { "name": "carryOracle" },
+        { "name": "carryGrainReserve", "writable": true },
+        { "name": "userGrainAccount",  "writable": true },
+        { "name": "cgrainMint",        "writable": true },
+        { "name": "userCgrainAccount", "writable": true },
+        { "name": "carryPosition",     "writable": true },
+        { "name": "tokenProgram" }
+      ],
+      "args": [{ "name": "cgrainAmount", "type": "u64" }]
+    },
+    {
+      "name": "postForwardOffer",
+      "discriminator": [41,91,33,217,115,82,232,240],
+      "accounts": [
+        { "name": "broker",            "writable": true, "signer": true },
+        { "name": "protocolConfig" },
+        { "name": "forwardOffer",      "writable": true },
+        { "name": "forwardUsdcVault",  "writable": true },
+        { "name": "brokerUsdcAccount", "writable": true },
+        { "name": "usdcMint" },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": { "name": "PostForwardOfferParams" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "acceptForwardOffer",
+      "discriminator": [209,76,57,122,30,183,237,187],
+      "accounts": [
+        { "name": "farmer",             "writable": true, "signer": true },
+        { "name": "protocolConfig" },
+        { "name": "forwardOffer",       "writable": true },
+        { "name": "forwardGrainEscrow", "writable": true },
+        { "name": "forwardContract",    "writable": true },
+        { "name": "farmerGrainAccount", "writable": true },
+        { "name": "grainMint" },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" }
+      ],
+      "args": [{ "name": "grainAmountKg", "type": "u64" }]
+    },
+    {
+      "name": "settleForward",
+      "discriminator": [57,250,108,51,191,126,121,121],
+      "accounts": [
+        { "name": "settler",            "signer": true },
+        { "name": "farmer" },
+        { "name": "broker" },
+        { "name": "forwardOffer",       "writable": true },
+        { "name": "forwardContract",    "writable": true },
+        { "name": "forwardGrainEscrow", "writable": true },
+        { "name": "forwardUsdcVault",   "writable": true },
+        { "name": "farmerUsdcAccount",  "writable": true },
+        { "name": "brokerGrainAccount", "writable": true },
+        { "name": "carryOracle" },
+        { "name": "tokenProgram" }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancelForwardOffer",
+      "discriminator": [178,217,135,155,65,214,84,227],
+      "accounts": [
+        { "name": "broker",            "writable": true, "signer": true },
+        { "name": "forwardOffer",      "writable": true },
+        { "name": "forwardUsdcVault",  "writable": true },
+        { "name": "brokerUsdcAccount", "writable": true },
+        { "name": "tokenProgram" }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    { "name": "ProtocolConfig",   "discriminator": [0,0,0,0,0,0,0,0] },
+    { "name": "LendingVault",     "discriminator": [0,0,0,0,0,0,0,1] },
+    { "name": "SgrainVault",      "discriminator": [0,0,0,0,0,0,0,2] },
+    { "name": "CarryVault",       "discriminator": [0,0,0,0,0,0,0,3] },
+    { "name": "CarryOracleState", "discriminator": [0,0,0,0,0,0,0,4] },
+    { "name": "ForwardOffer",     "discriminator": [0,0,0,0,0,0,0,5] },
+    { "name": "ForwardContract",  "discriminator": [0,0,0,0,0,0,0,6] }
+  ],
+  "types": [
+    {
+      "name": "PostForwardOfferParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "grainAmountKg",      "type": "u64" },
+          { "name": "forwardPricePerKg",  "type": "u64" },
+          { "name": "minGrade",           "type": "u8" },
+          { "name": "expiryTs",           "type": "i64" }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    { "code": 6000, "name": "Unauthorized",          "msg": "Unauthorized" },
+    { "code": 6001, "name": "ProtocolPaused",         "msg": "Protocol paused" },
+    { "code": 6002, "name": "MathOverflow",           "msg": "Math overflow" },
+    { "code": 6003, "name": "ExchangeRateOverflow",   "msg": "Exchange rate overflow" },
+    { "code": 6004, "name": "ZeroAmount",             "msg": "Zero amount" },
+    { "code": 6005, "name": "InsufficientGrain",      "msg": "Insufficient GRAIN" },
+    { "code": 6006, "name": "InsufficientSgrain",     "msg": "Insufficient sGRAIN" },
+    { "code": 6007, "name": "ExceedsLtv",             "msg": "Exceeds LTV" },
+    { "code": 6008, "name": "LoanNotActive",          "msg": "Loan not active" },
+    { "code": 6009, "name": "NotLiquidatable",        "msg": "Not liquidatable" },
+    { "code": 6010, "name": "OracleStale",            "msg": "Oracle stale" },
+    { "code": 6011, "name": "ForwardInactive",        "msg": "Forward offer not active" },
+    { "code": 6012, "name": "ForwardFull",            "msg": "Forward offer is full" },
+    { "code": 6013, "name": "ForwardNotExpired",      "msg": "Forward contract not yet expired" },
+    { "code": 6014, "name": "ForwardAlreadySettled",  "msg": "Forward contract already settled" },
+    { "code": 6015, "name": "ForwardExpired",         "msg": "Forward offer has expired" }
+  ]
+}

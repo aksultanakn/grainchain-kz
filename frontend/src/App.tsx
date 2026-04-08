@@ -1,4 +1,24 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { PublicKey } from "@solana/web3.js";
+import { BN } from "@coral-xyz/anchor";
+import { useAnchor } from "./useAnchor";
+import { fetchWalletBalances, explorerTx } from "./chain";
+import {
+  txDepositUsdc, txBorrow, txRepay,
+  txDepositSgrain, txWithdrawSgrain,
+  txEnterCarry, txExitCarry,
+  txPostForwardOffer, txAcceptForwardOffer, txSettleForward,
+} from "./transactions";
+
+// ─── Decode friendly error message from Anchor/Solana errors ─────────────────
+function anchorErrMsg(e: any): string {
+  const msg: string = e?.message || String(e) || "";
+  const code = msg.match(/Error Code:\s*(\w+)/)?.[1];
+  if (code) return code.replace(/([A-Z])/g, " $1").trim();
+  if (msg.includes("insufficient funds")) return "Insufficient SOL for fees";
+  if (msg.includes("0x1")) return "Insufficient token balance";
+  return msg.slice(0, 120) || "Transaction failed";
+}
 
 // ─── LANGUAGE TYPES & CONTEXT ─────────────────────────────────────────────────
 type Lang = "en" | "ru" | "kz";
@@ -1002,7 +1022,7 @@ function Modal({ title, sub, children, footer, onClose }: any) {
 }
 
 // ─── FARMER TAB ───────────────────────────────────────────────────────────────
-function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
+function FarmerTab({ wallet, setWallet, wPrice, toast, log, anchor, refreshBalances }: any) {
   const { lang } = useLang(); const t = T[lang];
   const [silo, setSilo] = useState<any>(null);
   const [mintModal, setMintModal] = useState(false);
@@ -1011,10 +1031,12 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
   const [grade, setGrade] = useState("2");
   const [borrowAmt, setBorrowAmt] = useState("");
   const [minting, setMinting] = useState(false);
+  const [txPending, setTxPending] = useState(false);
 
-  const grainVal = wallet.grain * wPrice * 36.744 / 1_000_000;
+  const grainVal  = wallet.grain * wPrice * 36.744 / 1_000_000_000;
   const maxBorrow = grainVal * 0.6;
 
+  // Mint = simulation (oracle-gated on-chain; shows receipt flow)
   function handleMint() {
     const k = parseFloat(kg); if (!k||!silo) return;
     setMinting(true);
@@ -1026,21 +1048,52 @@ function FarmerTab({ wallet, setWallet, wPrice, toast, log }: any) {
     }, 1600);
   }
 
-  function handleBorrow() {
-    const a = parseFloat(borrowAmt); if (!a||a>maxBorrow) { toast("Exceeds 60% LTV","err"); return; }
-    const locked = Math.ceil(a / (wPrice*36.744/1_000) * 1_000_000 / 0.6);
-    setWallet((w: any) => ({ ...w, usdc: w.usdc + a, grain: w.grain - locked }));
-    log({ c:"var(--amber)", t:`Borrowed ${fmt(a,0)} USDC · ${fmtK(locked/1_000_000)} GRAIN locked · 11.2% APR`, ts:nowStr() });
-    toast(`✓ ${fmt(a,0)} USDC borrowed`);
-    setBorrowModal(false); setBorrowAmt("");
+  async function handleBorrow() {
+    const a = parseFloat(borrowAmt);
+    if (!a || a > maxBorrow) { toast("Exceeds 60% LTV","err"); return; }
+    const pricePerKg = wPrice * 36.744 / 1_000;           // $/kg
+    const collateralKg = Math.ceil(a / pricePerKg / 0.6); // kg needed
+    const usdcLamports = Math.floor(a * 1_000_000);
+
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        const sig = await txBorrow(anchor.program, anchor.provider, collateralKg, usdcLamports);
+        await refreshBalances();
+        log({ c:"var(--amber)", t:`Borrowed ${fmt(a,0)} USDC · ${fmtK(collateralKg)} GRAIN locked · 11.2% APR`, ts:nowStr() });
+        toast(`✓ ${fmt(a,0)} USDC borrowed · tx ${sig.slice(0,8)}…`);
+        setBorrowModal(false); setBorrowAmt("");
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); }
+    } else {
+      const locked = collateralKg * 1_000_000;
+      setWallet((w: any) => ({ ...w, usdc: w.usdc + a, grain: w.grain - locked }));
+      log({ c:"var(--amber)", t:`Borrowed ${fmt(a,0)} USDC · ${fmtK(locked/1_000_000)} GRAIN locked · 11.2% APR`, ts:nowStr() });
+      toast(`✓ ${fmt(a,0)} USDC borrowed`);
+      setBorrowModal(false); setBorrowAmt("");
+    }
   }
 
-  function handleSgrain() {
+  async function handleSgrain() {
     if (wallet.grain < 100_000_000) { toast("Need ≥100 GRAIN","err"); return; }
     const d = Math.floor(wallet.grain * 0.4);
-    setWallet((w: any) => ({ ...w, grain: w.grain - d, sgrain: w.sgrain + d }));
-    log({ c:"var(--teal)", t:`Deposited ${fmtK(d/1_000_000)} GRAIN → sGRAIN vault · 3.2% APY`, ts:nowStr() });
-    toast(`✓ ${fmtK(d/1_000_000)} sGRAIN issued`);
+
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        const sig = await txDepositSgrain(anchor.program, anchor.provider, d);
+        await refreshBalances();
+        log({ c:"var(--teal)", t:`Deposited ${fmtK(d/1_000_000)} GRAIN → sGRAIN vault · 3.2% APY`, ts:nowStr() });
+        toast(`✓ ${fmtK(d/1_000_000)} sGRAIN issued · tx ${sig.slice(0,8)}…`);
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); }
+    } else {
+      setWallet((w: any) => ({ ...w, grain: w.grain - d, sgrain: w.sgrain + d }));
+      log({ c:"var(--teal)", t:`Deposited ${fmtK(d/1_000_000)} GRAIN → sGRAIN vault · 3.2% APY`, ts:nowStr() });
+      toast(`✓ ${fmtK(d/1_000_000)} sGRAIN issued`);
+    }
   }
 
   return (
@@ -1297,12 +1350,13 @@ function MarketTab({ wallet, setWallet, wPrice, toast, log }: any) {
 }
 
 // ─── LENDER TAB ───────────────────────────────────────────────────────────────
-function LenderTab({ wallet, setWallet, toast, log }: any) {
+function LenderTab({ wallet, setWallet, toast, log, anchor, refreshBalances }: any) {
   const { lang } = useLang(); const t = T[lang];
   const [depositModal, setDepositModal] = useState(false);
   const [depositAmt, setDepositAmt] = useState("");
   const [earned, setEarned] = useState({ v1:1842.50, v2:623.40 });
   const [flash, setFlash] = useState(false);
+  const [txPending, setTxPending] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -1312,12 +1366,26 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
     return () => clearInterval(t);
   }, []);
 
-  function handleDeposit() {
+  async function handleDeposit() {
     const a = parseFloat(depositAmt);
-    if (!a||a>wallet.usdc) { toast(lang==="en"?"Invalid amount":lang==="ru"?"Неверная сумма":"Жарамсыз сома","err"); return; }
-    setWallet((w: any) => ({ ...w, usdc: w.usdc - a }));
-    log({ c:"var(--teal)", t:`${lang==="en"?"Deposited":lang==="ru"?"Внесено":"Салынды"} ${fmt(a,0)} USDC → GRAIN Senior Vault · 11.2% APY`, ts:nowStr() });
-    toast(`✓ ${fmt(a,0)} USDC ${lang==="en"?"deposited · yield starts now":lang==="ru"?"внесено · доходность начинается":"салынды · табыс басталды"}`);
+    if (!a||a>wallet.usdc/1_000_000) { toast(lang==="en"?"Invalid amount":lang==="ru"?"Неверная сумма":"Жарамсыз сома","err"); return; }
+    const lamports = Math.floor(a * 1_000_000);
+
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        const sig = await txDepositUsdc(anchor.program, anchor.provider, lamports);
+        await refreshBalances();
+        log({ c:"var(--teal)", t:`Deposited ${fmt(a,0)} USDC → GRAIN Senior Vault · 11.2% APY · tx ${sig.slice(0,8)}…`, ts:nowStr() });
+        toast(`✓ ${fmt(a,0)} USDC deposited · tx ${sig.slice(0,8)}…`);
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); }
+    } else {
+      setWallet((w: any) => ({ ...w, usdc: w.usdc - lamports }));
+      log({ c:"var(--teal)", t:`${lang==="en"?"Deposited":lang==="ru"?"Внесено":"Салынды"} ${fmt(a,0)} USDC → GRAIN Senior Vault · 11.2% APY`, ts:nowStr() });
+      toast(`✓ ${fmt(a,0)} USDC ${lang==="en"?"deposited · yield starts now":lang==="ru"?"внесено · доходность начинается":"салынды · табыс басталды"}`);
+    }
     setDepositModal(false); setDepositAmt("");
   }
 
@@ -1438,7 +1506,7 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
           onClose={() => setDepositModal(false)}
           footer={<>
             <button className="btn btn-outline" style={{flex:1}} onClick={() => setDepositModal(false)}>{t.cancel}</button>
-            <button className="btn btn-primary" style={{flex:1}} disabled={!depositAmt||parseFloat(depositAmt)<=0||parseFloat(depositAmt)>wallet.usdc} onClick={handleDeposit}>{t.depositEarn}</button>
+            <button className="btn btn-primary" style={{flex:1}} disabled={txPending||!depositAmt||parseFloat(depositAmt)<=0||parseFloat(depositAmt)>wallet.usdc/1_000_000} onClick={handleDeposit}>{txPending?"…":t.depositEarn}</button>
           </>}>
           <div className="field">
             <label className="field-label">{t.depositAmt}</label>
@@ -1446,7 +1514,7 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
               <input className="input round-l" type="number" placeholder="e.g. 5000" value={depositAmt} onChange={e=>setDepositAmt(e.target.value)}/>
               <div className="input-sfx">USDC</div>
             </div>
-            <div className="text-sm mt-8">{lang==="en"?"Available":lang==="ru"?"Доступно":"Қолжетімді"}: {fmt(wallet.usdc,0)} USDC</div>
+            <div className="text-sm mt-8">{lang==="en"?"Available":lang==="ru"?"Доступно":"Қолжетімді"}: {fmt(wallet.usdc/1_000_000,0)} USDC</div>
           </div>
           {depositAmt&&parseFloat(depositAmt)>0&&(
             <div className="info-box">{t.annualYield}: <strong>${fmt(parseFloat(depositAmt)*.112,0)}</strong> · {t.monthly}: <strong>${fmt(parseFloat(depositAmt)*.112/12,0)}</strong></div>
@@ -1458,7 +1526,7 @@ function LenderTab({ wallet, setWallet, toast, log }: any) {
 }
 
 // ─── CARRY TAB ────────────────────────────────────────────────────────────────
-function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
+function CarryTab({ wallet, setWallet, wPrice, toast, log, anchor, refreshBalances }: any) {
   const { lang } = useLang(); const t = T[lang];
   const [carrySpread, setCarrySpread] = useState(1480); // bps
   const [enterModal, setEnterModal] = useState(false);
@@ -1466,6 +1534,7 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
   const [cgrainEarned, setCgrainEarned] = useState(0);
   const [cgrainRate, setCgrainRate] = useState(1_000_000_000);
   const [rateFlash, setRateFlash] = useState(false);
+  const [txPending, setTxPending] = useState(false);
 
   // ── Live carry spread simulation (realistic: slow drift, not random jump) ──
   // Real CME spread changes by ~0.01-0.05% per day, we simulate that
@@ -1510,23 +1579,49 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
   const spotPrice = wPrice * 36.744;
   const marchPrice = spotPrice * (1 + carrySpread / 10000 * 180 / 365);
 
-  function handleEnter() {
+  async function handleEnter() {
     const kg = parseFloat(enterAmt) * 1_000_000;
     if (!enterAmt||kg>wallet.grain) { toast(lang==="en"?"Insufficient GRAIN":lang==="ru"?"Недостаточно GRAIN":"GRAIN жеткіліксіз","err"); return; }
-    const cgrain = Math.floor(kg * 1e9 / cgrainRate);
-    setWallet((w: any) => ({ ...w, grain: w.grain - kg, cgrain: (w.cgrain||0) + cgrain }));
-    log({ c:"var(--gold)", t:`${lang==="en"?"Entered carry":lang==="ru"?"Открыта кэрри-позиция":"Кэрри позиция ашылды"}: ${fmtK(kg/1_000_000)} GRAIN → cGRAIN · spread=${(carrySpread/100).toFixed(1)}% · APY=${annualizedApy}%`, ts:nowStr() });
-    toast(`✓ ${lang==="en"?"Carry position opened":lang==="ru"?"Кэрри-позиция открыта":"Кэрри позициясы ашылды"} · ${annualizedApy}% APY`);
+
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        const sig = await txEnterCarry(anchor.program, anchor.provider, kg);
+        await refreshBalances();
+        log({ c:"var(--gold)", t:`Entered carry: ${fmtK(kg/1_000_000)} GRAIN → cGRAIN · spread=${(carrySpread/100).toFixed(1)}% · APY=${annualizedApy}% · tx ${sig.slice(0,8)}…`, ts:nowStr() });
+        toast(`✓ Carry position opened · ${annualizedApy}% APY · tx ${sig.slice(0,8)}…`);
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); }
+    } else {
+      const cgrain = Math.floor(kg * 1e9 / cgrainRate);
+      setWallet((w: any) => ({ ...w, grain: w.grain - kg, cgrain: (w.cgrain||0) + cgrain }));
+      log({ c:"var(--gold)", t:`${lang==="en"?"Entered carry":lang==="ru"?"Открыта кэрри-позиция":"Кэрри позиция ашылды"}: ${fmtK(kg/1_000_000)} GRAIN → cGRAIN · spread=${(carrySpread/100).toFixed(1)}% · APY=${annualizedApy}%`, ts:nowStr() });
+      toast(`✓ ${lang==="en"?"Carry position opened":lang==="ru"?"Кэрри-позиция открыта":"Кэрри позициясы ашылды"} · ${annualizedApy}% APY`);
+    }
     setEnterModal(false); setEnterAmt("");
   }
 
-  function handleExit() {
+  async function handleExit() {
     if (!wallet.cgrain||wallet.cgrain<=0) return;
-    const grainBack = Math.floor(wallet.cgrain * cgrainRate / 1e9);
-    const yield_ = grainBack - wallet.cgrain;
-    setWallet((w: any) => ({ ...w, cgrain: 0, grain: w.grain + grainBack }));
-    log({ c:"var(--gold)", t:`${lang==="en"?"Exited carry":lang==="ru"?"Кэрри закрыт":"Кэрриден шықты"}: ${fmtK(wallet.cgrain/1_000_000)} cGRAIN → ${fmtK(grainBack/1_000_000)} GRAIN (+${fmtK(yield_/1_000_000)} GRAIN)`, ts:nowStr() });
-    toast(`✓ ${lang==="en"?"Carry exited":lang==="ru"?"Кэрри закрыт":"Кэрри жабылды"} · ${fmtK(grainBack/1_000_000)} GRAIN`);
+
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        const sig = await txExitCarry(anchor.program, anchor.provider, wallet.cgrain);
+        await refreshBalances();
+        log({ c:"var(--gold)", t:`Exited carry: ${fmtK(wallet.cgrain/1_000_000)} cGRAIN redeemed · tx ${sig.slice(0,8)}…`, ts:nowStr() });
+        toast(`✓ Carry exited · tx ${sig.slice(0,8)}…`);
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); }
+    } else {
+      const grainBack = Math.floor(wallet.cgrain * cgrainRate / 1e9);
+      const yield_ = grainBack - wallet.cgrain;
+      setWallet((w: any) => ({ ...w, cgrain: 0, grain: w.grain + grainBack }));
+      log({ c:"var(--gold)", t:`${lang==="en"?"Exited carry":lang==="ru"?"Кэрри закрыт":"Кэрриден шықты"}: ${fmtK(wallet.cgrain/1_000_000)} cGRAIN → ${fmtK(grainBack/1_000_000)} GRAIN (+${fmtK(yield_/1_000_000)} GRAIN)`, ts:nowStr() });
+      toast(`✓ ${lang==="en"?"Carry exited":lang==="ru"?"Кэрри закрыт":"Кэрри жабылды"} · ${fmtK(grainBack/1_000_000)} GRAIN`);
+    }
   }
 
   const posValue = wallet.cgrain ? wallet.cgrain/1_000_000 * spotPrice / 1000 : 0;
@@ -1646,7 +1741,7 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
           {enterAmt&&parseFloat(enterAmt)>0&&(
             <div className="gold-box">{t.atApy} {annualizedApy}% {t.inSixMonths} <strong>+{fmt(parseFloat(enterAmt)*parseFloat(annualizedApy)/100/2,0)} {t.kgGrainYield}</strong> {t.onYourPos}</div>
           )}
-          <button className="btn btn-gold btn-full mt-4" disabled={!wallet.grain||wallet.grain<100_000||!enterAmt||parseFloat(enterAmt)*1_000_000>wallet.grain} onClick={()=>{ if(enterAmt&&parseFloat(enterAmt)>0) handleEnter(); else setEnterModal(true); }}>
+          <button className="btn btn-gold btn-full mt-4" disabled={txPending||!wallet.grain||wallet.grain<100_000||!enterAmt||parseFloat(enterAmt)*1_000_000>wallet.grain} onClick={()=>{ if(enterAmt&&parseFloat(enterAmt)>0) handleEnter(); else setEnterModal(true); }}>
             {t.enterCarryBtn}
           </button>
         </div>
@@ -1664,7 +1759,7 @@ function CarryTab({ wallet, setWallet, wPrice, toast, log }: any) {
                 <div className="receipt-row"><span className="receipt-key">{t.yieldAccrued}</span><span className="receipt-val" style={{color:"#5ecba1"}}>+{cgrainEarned.toFixed(4)} GRAIN</span></div>
                 <div className="receipt-row"><span className="receipt-key">{t.status}</span><span className="receipt-val" style={{color:"#e8c85a"}}>{t.carryAccruing}</span></div>
               </div>
-              <button className="btn btn-outline btn-full mt-12" onClick={handleExit}>{t.exitCarry}</button>
+              <button className="btn btn-outline btn-full mt-12" disabled={txPending} onClick={handleExit}>{txPending?"…":t.exitCarry}</button>
             </>
           ) : (
             <div style={{textAlign:"center",padding:"32px 0",color:"var(--ink-l)"}}>
@@ -1834,7 +1929,7 @@ interface ForwardContract { farmer: string; broker: string; grainKg: number; pri
 const DEMO_BROKER = "KazAg…ro7F";
 const DEMO_BROKER_FULL = "KazAgro Forward Desk";
 
-function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
+function ForwardTab({ wallet, setWallet, wPrice, toast, log, anchor, refreshBalances }: any) {
   const { lang } = useLang(); const t = T[lang];
 
   // ── Demo offers ──────────────────────────────────────────────────────────────
@@ -1853,6 +1948,7 @@ function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
   const [postGrade, setPostGrade]   = useState("3");
   const [postExpiry, setPostExpiry] = useState("2027-03-01");
   const [settling, setSettling]     = useState(false);
+  const [txPending, setTxPending]   = useState(false);
 
   const spotPrice = wPrice * 36.744 / 1000; // $/kg from ¢/bushel
 
@@ -1870,27 +1966,42 @@ function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
   }
 
   // ── Post offer ───────────────────────────────────────────────────────────────
-  function handlePostOffer() {
+  async function handlePostOffer() {
     const kg     = parseFloat(postQty);
     const price  = parseFloat(postPrice);
     const expiry = new Date(postExpiry).getTime() / 1000;
     if (!kg || !price || kg <= 0 || price <= 0) { toast(lang==="en"?"Fill all fields":"Заполните все поля","err"); return; }
     const usdcNeeded = kg * price;
     if (usdcNeeded > wallet.usdc / 1_000_000) { toast(lang==="en"?"Insufficient USDC":"Недостаточно USDC","err"); return; }
-    const newOffer: ForwardOffer = {
-      id: `off-${Date.now()}`, broker: DEMO_BROKER,
-      grainKg: kg, pricePerKg: price, minGrade: parseInt(postGrade),
-      expiryTs: expiry, filledKg: 0, usdcLocked: usdcNeeded,
-    };
-    setOffers(prev => [newOffer, ...prev]);
-    setWallet((w: any) => ({ ...w, usdc: w.usdc - usdcNeeded * 1_000_000 }));
-    log({ c:"var(--sky)", t:`Forward offer posted: ${fmtK(kg)} kg @ $${price}/kg · ${fmtK(usdcNeeded)} USDC locked`, ts: nowStr() });
-    toast(`✓ Forward offer posted · ${fmtK(usdcNeeded)} USDC locked`);
+
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        // price in USDC lamports per kg (6 decimals)
+        const priceLamports = Math.round(price * 1_000_000);
+        const sig = await txPostForwardOffer(anchor.program, anchor.provider, kg, priceLamports, parseInt(postGrade), expiry);
+        await refreshBalances();
+        log({ c:"var(--sky)", t:`Forward offer posted on-chain: ${fmtK(kg)} kg @ $${price}/kg · tx ${sig.slice(0,8)}…`, ts: nowStr() });
+        toast(`✓ Forward offer posted · tx ${sig.slice(0,8)}…`);
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); }
+    } else {
+      const newOffer: ForwardOffer = {
+        id: `off-${Date.now()}`, broker: DEMO_BROKER,
+        grainKg: kg, pricePerKg: price, minGrade: parseInt(postGrade),
+        expiryTs: expiry, filledKg: 0, usdcLocked: usdcNeeded,
+      };
+      setOffers(prev => [newOffer, ...prev]);
+      setWallet((w: any) => ({ ...w, usdc: w.usdc - usdcNeeded * 1_000_000 }));
+      log({ c:"var(--sky)", t:`Forward offer posted: ${fmtK(kg)} kg @ $${price}/kg · ${fmtK(usdcNeeded)} USDC locked`, ts: nowStr() });
+      toast(`✓ Forward offer posted · ${fmtK(usdcNeeded)} USDC locked`);
+    }
     setPostModal(false); setPostQty(""); setPostPrice("");
   }
 
   // ── Accept offer ─────────────────────────────────────────────────────────────
-  function handleAccept() {
+  async function handleAccept() {
     if (!acceptModal) return;
     const kg        = parseFloat(acceptKg);
     const grainLam  = kg * 1_000_000;
@@ -1900,38 +2011,73 @@ function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
     const available = acceptModal.grainKg - acceptModal.filledKg;
     if (kg > available) { toast(lang==="en"?`Max ${fmtK(available)} kg`:`Макс. ${fmtK(available)} кг`,"err"); return; }
 
-    setOffers(prev => prev.map(o =>
-      o.id === acceptModal.id ? { ...o, filledKg: o.filledKg + kg } : o
-    ));
-    setWallet((w: any) => ({ ...w, grain: w.grain - grainLam }));
-    setMyContract({
-      farmer: "You",
-      broker: DEMO_BROKER_FULL,
-      grainKg: kg,
-      pricePerKg: acceptModal.pricePerKg,
-      usdcLocked: usdcOut,
-      expiryTs: acceptModal.expiryTs,
-      status: "active",
-    });
-    log({ c:"var(--teal)", t:`Forward accepted: ${fmtK(kg)} kg GRAIN locked @ $${acceptModal.pricePerKg}/kg · $${fmt(usdcOut,0)} USDC reserved`, ts: nowStr() });
-    toast(`✓ Contract created · ${fmtK(kg)} kg locked @ $${acceptModal.pricePerKg}/kg`);
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        // For demo offers, broker is a display string — only works with real on-chain offer pubkey
+        // When accepting a real on-chain offer, acceptModal.brokerPubkey would be set
+        const brokerPk = (acceptModal as any).brokerPubkey
+          ? new PublicKey((acceptModal as any).brokerPubkey)
+          : anchor.publicKey!; // fallback: treat own key as broker for testing
+        const sig = await txAcceptForwardOffer(anchor.program, anchor.provider, brokerPk, grainLam);
+        await refreshBalances();
+        log({ c:"var(--teal)", t:`Forward accepted on-chain: ${fmtK(kg)} kg GRAIN locked · tx ${sig.slice(0,8)}…`, ts: nowStr() });
+        toast(`✓ Contract created · tx ${sig.slice(0,8)}…`);
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); }
+    } else {
+      setOffers(prev => prev.map(o =>
+        o.id === acceptModal.id ? { ...o, filledKg: o.filledKg + kg } : o
+      ));
+      setWallet((w: any) => ({ ...w, grain: w.grain - grainLam }));
+      setMyContract({
+        farmer: "You",
+        broker: DEMO_BROKER_FULL,
+        grainKg: kg,
+        pricePerKg: acceptModal.pricePerKg,
+        usdcLocked: usdcOut,
+        expiryTs: acceptModal.expiryTs,
+        status: "active",
+      });
+      log({ c:"var(--teal)", t:`Forward accepted: ${fmtK(kg)} kg GRAIN locked @ $${acceptModal.pricePerKg}/kg · $${fmt(usdcOut,0)} USDC reserved`, ts: nowStr() });
+      toast(`✓ Contract created · ${fmtK(kg)} kg locked @ $${acceptModal.pricePerKg}/kg`);
+    }
     setAcceptModal(null); setAcceptKg("");
   }
 
   // ── Settle ────────────────────────────────────────────────────────────────────
-  function handleSettle() {
+  async function handleSettle() {
     if (!myContract) return;
     setSettling(true);
-    setTimeout(() => {
-      const grainBack = 0; // grain goes to broker
-      const usdcIn    = myContract.usdcLocked;
-      const pnl       = myContract.usdcLocked - myContract.grainKg * spotPrice;
-      setWallet((w: any) => ({ ...w, usdc: w.usdc + usdcIn * 1_000_000 }));
-      setMyContract(c => c ? { ...c, status: "settled" } : null);
-      log({ c:"var(--gold)", t:`Forward settled: ${fmtK(myContract.grainKg)} kg GRAIN → broker · $${fmt(usdcIn,2)} USDC → you · PnL vs spot: ${pnl>=0?"+":""}$${fmt(pnl,2)}`, ts: nowStr() });
-      toast(`✓ Settled · $${fmt(usdcIn,2)} USDC received · ${pnl>=0?"beat":"below"} spot by $${fmt(Math.abs(pnl),2)}`);
-      setSettling(false);
-    }, 1200);
+
+    if (anchor.connected && anchor.program && anchor.provider) {
+      try {
+        setTxPending(true);
+        const farmerPk = anchor.publicKey!;
+        // brokerPubkey stored on contract if set, otherwise fallback to own key for testing
+        const brokerPk = (myContract as any).brokerPubkey
+          ? new PublicKey((myContract as any).brokerPubkey)
+          : anchor.publicKey!;
+        const sig = await txSettleForward(anchor.program, anchor.provider, farmerPk, brokerPk);
+        await refreshBalances();
+        setMyContract(c => c ? { ...c, status: "settled" } : null);
+        log({ c:"var(--gold)", t:`Forward settled on-chain: tx ${sig.slice(0,8)}…`, ts: nowStr() });
+        toast(`✓ Settled on-chain · tx ${sig.slice(0,8)}…`);
+      } catch(e: any) {
+        toast(anchorErrMsg(e), "err");
+      } finally { setTxPending(false); setSettling(false); }
+    } else {
+      setTimeout(() => {
+        const usdcIn = myContract.usdcLocked;
+        const pnl    = myContract.usdcLocked - myContract.grainKg * spotPrice;
+        setWallet((w: any) => ({ ...w, usdc: w.usdc + usdcIn * 1_000_000 }));
+        setMyContract(c => c ? { ...c, status: "settled" } : null);
+        log({ c:"var(--gold)", t:`Forward settled: ${fmtK(myContract.grainKg)} kg GRAIN → broker · $${fmt(usdcIn,2)} USDC → you · PnL vs spot: ${pnl>=0?"+":""}$${fmt(pnl,2)}`, ts: nowStr() });
+        toast(`✓ Settled · $${fmt(usdcIn,2)} USDC received · ${pnl>=0?"beat":"below"} spot by $${fmt(Math.abs(pnl),2)}`);
+        setSettling(false);
+      }, 1200);
+    }
   }
 
   const acceptUsdc  = acceptModal ? (parseFloat(acceptKg)||0) * acceptModal.pricePerKg : 0;
@@ -2069,7 +2215,7 @@ function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
                 className="btn-primary"
                 style={{width:"100%",background:"var(--teal)"}}
                 onClick={handleSettle}
-                disabled={settling}
+                disabled={settling||txPending}
               >
                 {settling ? "Settling…" : t.fwdSettle}
               </button>
@@ -2160,7 +2306,7 @@ function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:20}}>
               <button className="btn-secondary" onClick={()=>setPostModal(false)}>{t.cancel}</button>
-              <button className="btn-primary" onClick={handlePostOffer}>{t.fwdLockUsdc}</button>
+              <button className="btn-primary" disabled={txPending} onClick={handlePostOffer}>{txPending?"…":t.fwdLockUsdc}</button>
             </div>
           </div>
         </div>
@@ -2212,7 +2358,7 @@ function ForwardTab({ wallet, setWallet, wPrice, toast, log }: any) {
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:20}}>
               <button className="btn-secondary" onClick={()=>setAcceptModal(null)}>{t.cancel}</button>
-              <button className="btn-primary" onClick={handleAccept}>{t.fwdConfirmAccept}</button>
+              <button className="btn-primary" disabled={txPending} onClick={handleAccept}>{txPending?"…":t.fwdConfirmAccept}</button>
             </div>
           </div>
         </div>
@@ -2359,9 +2505,26 @@ export default function App() {
   const [lang, setLang] = useState<Lang>("en");
   const t = T[lang];
 
+  // ── Wallet / Anchor ────────────────────────────────────────────────────────
+  const anchor = useAnchor();
+
   const [wallet, setWallet] = useState({
     usdc: 45000, grain: 3_200_000_000, sgrain: 1_850_000_000, cgrain: 0, chain: 420
   });
+
+  // Fetch real on-chain balances whenever wallet connects or changes
+  useEffect(() => {
+    if (!anchor.publicKey) return;
+    fetchWalletBalances(anchor.connection, anchor.publicKey).then(bals => {
+      setWallet(w => ({
+        ...w,
+        usdc:   bals.usdc,
+        grain:  bals.grain,
+        sgrain: bals.sgrain,
+        cgrain: bals.cgrain,
+      }));
+    }).catch(console.error);
+  }, [anchor.publicKey?.toBase58()]);
   const [wPrice, setWPrice] = useState(182.4);
   const [wDelta, setWDelta] = useState(0.12);
   const [toastMsg, setToastMsg] = useState<any>(null);
@@ -2398,7 +2561,14 @@ export default function App() {
     { id:"judge",   label:t.judgeGuide,    icon:"🎓" },
   ];
 
-  const props = { wallet, setWallet, wPrice, toast, log };
+  // Helper: refresh balances after a tx
+  const refreshBalances = useCallback(async () => {
+    if (!anchor.publicKey) return;
+    const bals = await fetchWalletBalances(anchor.connection, anchor.publicKey);
+    setWallet(w => ({ ...w, usdc: bals.usdc, grain: bals.grain, sgrain: bals.sgrain, cgrain: bals.cgrain }));
+  }, [anchor.publicKey?.toBase58()]);
+
+  const props = { wallet, setWallet, wPrice, toast, log, anchor, refreshBalances };
 
   return (
     <LangContext.Provider value={{ lang, setLang }}>
@@ -2429,8 +2599,34 @@ export default function App() {
               </button>
             ))}
           </div>
-          <div className="wallet-pill"><div className="w-dot"/>{fmt(wallet.usdc,0)} USDC</div>
-          <div className="wallet-pill"><div className="w-dot"/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
+          {anchor.connected && anchor.publicKey ? (
+            <>
+              <div className="wallet-pill"><div className="w-dot" style={{background:"var(--teal)"}}/>{fmt(wallet.usdc/1_000_000,0)} USDC</div>
+              <div className="wallet-pill"><div className="w-dot" style={{background:"var(--green)"}}/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
+              <button
+                className="wallet-pill"
+                style={{cursor:"pointer",borderColor:"var(--border-m)",background:"var(--sand-d)"}}
+                onClick={anchor.disconnect}
+                title="Disconnect wallet"
+              >
+                <div className="w-dot" style={{background:"var(--gold)"}}/>
+                {anchor.publicKey.toBase58().slice(0,4)}…{anchor.publicKey.toBase58().slice(-4)}
+                &nbsp;·&nbsp;{anchor.balance.toFixed(2)} SOL
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="wallet-pill"><div className="w-dot"/>{fmt(wallet.usdc,0)} USDC</div>
+              <div className="wallet-pill"><div className="w-dot"/>{(wallet.grain/1_000_000).toFixed(0)} GRAIN</div>
+              <button
+                className="btn-primary"
+                style={{fontSize:12,padding:"6px 16px",borderRadius:20}}
+                onClick={anchor.connect}
+              >
+                Connect Wallet
+              </button>
+            </>
+          )}
         </div>
       </div>
 
